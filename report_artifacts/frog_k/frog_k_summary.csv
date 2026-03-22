@@ -1,0 +1,3 @@
+comparison,pairs_count,pairs_shorter_paths,pairs_worse_paths,pairs_equal_paths,overall_baseline_mean_hops,overall_candidate_mean_hops,overall_delta_hops,overall_reduction_pct
+k3_vs_k1,100,14,0,86,10.58,9.1,1.4800000000000004,13.988657844990552
+k5_vs_k1,100,24,0,76,10.58,8.08,2.5,23.629489603024574

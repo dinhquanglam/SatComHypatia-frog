@@ -28,10 +28,15 @@ file = 'hop_count.txt'
 
 #Function to count hops in paths
 def read_hop_file(file):
-    path_at_0 = file.readlines()[0].strip().split(',')
+    lines = [ln.strip() for ln in file.readlines() if ln.strip()]
+    if not lines:
+        return None
+    path_at_0 = lines[0].split(',')
+    if len(path_at_0) < 2:
+        return None
     hop_count = path_at_0[1].split('-')
-    number_sat = len(hop_count)-2
-    return number_sat
+    number_sat = len(hop_count) - 2
+    return number_sat if number_sat >= 0 else None
 
 #####
 #EXECUTION
@@ -64,18 +69,24 @@ for i in range (len(tab_isls)) :
                 tab_hopcount[i].append(read_hop_file(f_hop_count))
                 
                 
-#Reduction rates
-for j in range (nb_cities) : 
-    tab_reduc_SP[0].append((tab_hopcount[2][j] - tab_hopcount[0][j]) / tab_hopcount[0][j])
-    tab_reduc_SP[1].append((tab_hopcount[4][j] - tab_hopcount[0][j]) / tab_hopcount[0][j])
-    tab_reduc_MCNF[0].append((tab_hopcount[3][j] - tab_hopcount[1][j]) / tab_hopcount[1][j])
-    tab_reduc_MCNF[1].append((tab_hopcount[5][j] - tab_hopcount[1][j]) / tab_hopcount[1][j])
+#Reduction rates (robust to missing/empty path files)
+sample_count = min(len(x) for x in tab_hopcount)
+for j in range(sample_count):
+    v0, v1, v2, v3, v4, v5 = [tab_hopcount[i][j] for i in range(6)]
+    if None in [v0, v1, v2, v3, v4, v5]:
+        continue
+    if v0 > 0:
+        tab_reduc_SP[0].append((v2 - v0) / v0)
+        tab_reduc_SP[1].append((v4 - v0) / v0)
+    if v1 > 0:
+        tab_reduc_MCNF[0].append((v3 - v1) / v1)
+        tab_reduc_MCNF[1].append((v5 - v1) / v1)
 
 #Averages
-avg_reduc_SP3 = sum(tab_reduc_SP[0])/len(tab_reduc_SP[0])
-avg_reduc_SP5 = sum(tab_reduc_SP[1])/len(tab_reduc_SP[1])
-avg_reduc_MCNF3 = sum(tab_reduc_MCNF[0])/len(tab_reduc_MCNF[0])
-avg_reduc_MCNF5 = sum(tab_reduc_MCNF[1])/len(tab_reduc_MCNF[1])
+avg_reduc_SP3 = sum(tab_reduc_SP[0]) / len(tab_reduc_SP[0]) if tab_reduc_SP[0] else 0.0
+avg_reduc_SP5 = sum(tab_reduc_SP[1]) / len(tab_reduc_SP[1]) if tab_reduc_SP[1] else 0.0
+avg_reduc_MCNF3 = sum(tab_reduc_MCNF[0]) / len(tab_reduc_MCNF[0]) if tab_reduc_MCNF[0] else 0.0
+avg_reduc_MCNF5 = sum(tab_reduc_MCNF[1]) / len(tab_reduc_MCNF[1]) if tab_reduc_MCNF[1] else 0.0
 
 
 #write in a file the results :
@@ -87,18 +98,32 @@ with open(file,'a') as fhopcount :
     fhopcount.write("".join("AVERAGE DIFFERENCE MCNF 5: {:.2f}%\n\n".format(avg_reduc_MCNF5*100)))
 
     fhopcount.write("".join("ID"+'\t'+"ISLS"+'\t'+"ISLS2"+'\t'+"ISLS3"+'\t'+"ISLS4"+'\t'+"ISLS5"+'\t'+"ISLS6"+'\t'+"ISLS3/ISLS"+'\t'+"ISLS5/ISLS"+'\t'+"ISLS4/ISLS2"+'\t'+"ISLS6/ISLS2"+"\n"))
-    #fhopcount.write("".join(str(j)+'\t'+str(tab_hopcount[0][j])+'\t\t'+str(tab_hopcount[1][j])+'\t\t'+str(tab_hopcount[2][j])+'\t\t'+str(tab_hopcount[3][j])+str(tab_hopcount[4][j])+str(tab_hopcount[5][j])+str(tab_reduc_SP[0][j])+'\t\t'+str(tab_reduc_SP[1][j])+'\t\t'+str(tab_reduc_MCNF[0][j])+'\t\t'+str(tab_reduc_MCNF[1][j])+"\n" for j in range (nb_cities)))
+    #fhopcount.write("".join(str(j)+'\t'+str(tab_hopcount[0][j])+'\t\t'+str(tab_hopcount[1][j])+'\t\t'+str(tab_hopcount[2][j])+'\t\t'+str(tab_hopcount[3][j])+str(tab_hopcount[4][j])+str(tab_hopcount[5][j])+str(tab_reduc_SP[0][j])+'\t\t'+str(tab_reduc_SP[1][j])+'\t\t'+str(tab_reduc_MCNF[0][j])+'\t\t'+str(tab_reduc_MCNF[1][j])+"\n" for j in range (sample_count)))
 
-    fhopcount.write("".join(str(j)+'\t' \
-                    +str(tab_hopcount[0][j])+'\t\t' \
-                    +str(tab_hopcount[1][j])+'\t\t' \
-                    +str(tab_hopcount[2][j])+'\t\t' \
-                    +str(tab_hopcount[3][j])+'\t\t' \
-                    +str(tab_hopcount[4][j])+'\t\t' \
-                    +str(tab_hopcount[5][j])+'\t\t' \
-                    +"{:.2f}\t\t{:.2f}\t\t{:.2f}\t\t{:.2f}\n" \
-                    .format(tab_reduc_SP[0][j], tab_reduc_SP[1][j], tab_reduc_MCNF[0][j], tab_reduc_MCNF[1][j]) \
-                    for j in range (nb_cities)))
+    table_len = min(
+        sample_count,
+        len(tab_reduc_SP[0]),
+        len(tab_reduc_SP[1]),
+        len(tab_reduc_MCNF[0]),
+        len(tab_reduc_MCNF[1]),
+    )
+
+    fhopcount.write("".join(
+        str(j) + '	'
+        + str(tab_hopcount[0][j]) + '		'
+        + str(tab_hopcount[1][j]) + '		'
+        + str(tab_hopcount[2][j]) + '		'
+        + str(tab_hopcount[3][j]) + '		'
+        + str(tab_hopcount[4][j]) + '		'
+        + str(tab_hopcount[5][j]) + '		'
+        + "{:.2f}\t\t{:.2f}\t\t{:.2f}\t\t{:.2f}\n".format(
+            tab_reduc_SP[0][j],
+            tab_reduc_SP[1][j],
+            tab_reduc_MCNF[0][j],
+            tab_reduc_MCNF[1][j],
+        )
+        for j in range(table_len)
+    ))
 
 print("Hop_Count Results written in file : hop_count.txt")
 

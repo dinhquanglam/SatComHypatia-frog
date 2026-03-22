@@ -67,6 +67,13 @@ class MainHelper:
             num_threads
     ):
 
+        # Compatibility aliases for FROG k-comparison experiments
+        algo_aliases = {
+            "algorithm_free_one_only_over_isls_k3": "algorithm_free_one_only_over_isls4",
+            "algorithm_free_one_only_over_isls_k5": "algorithm_free_one_only_over_isls6",
+        }
+        runtime_dynamic_state_algorithm = algo_aliases.get(dynamic_state_algorithm, dynamic_state_algorithm)
+
         # Add base name to setting
         name = self.BASE_NAME + "_" + isl_selection + "_" + gs_selection + "_" + dynamic_state_algorithm
 
@@ -83,6 +90,11 @@ class MainHelper:
                 "input_data/ground_stations_cities_sorted_by_estimated_2025_pop_top_100.basic.txt",
                 output_generated_data_dir + "/" + name + "/ground_stations.txt"
             )
+        elif gs_selection == "ground_stations_top_20":
+            satgen.extend_ground_stations(
+                "input_data/ground_stations_cities_sorted_by_estimated_2025_pop_top_20.basic.txt",
+                output_generated_data_dir + "/" + name + "/ground_stations.txt"
+            )
         elif gs_selection == "ground_stations_top_200":
             satgen.extend_ground_stations(
                 "input_data/ground_stations_cities_sorted_by_estimated_2025_pop_top_200.basic.txt",
@@ -96,6 +108,11 @@ class MainHelper:
         elif gs_selection == "ground_stations_paris_moscow_grid":
             satgen.extend_ground_stations(
                 "input_data/ground_stations_paris_moscow_grid.basic.txt",
+                output_generated_data_dir + "/" + name + "/ground_stations.txt"
+            )
+        elif gs_selection == "ground_stations_paris_moscow_grid_76":
+            satgen.extend_ground_stations(
+                "input_data/ground_stations_paris_moscow_grid_76.basic.txt",
                 output_generated_data_dir + "/" + name + "/ground_stations.txt"
             )
         else:
@@ -144,19 +161,19 @@ class MainHelper:
         ground_stations = satgen.read_ground_stations_extended(
             output_generated_data_dir + "/" + name + "/ground_stations.txt"
         )
-        if dynamic_state_algorithm == "algorithm_free_one_only_gs_relays" \
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls"\
-				or dynamic_state_algorithm == "algorithm_free_one_only_over_isls2"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls2b"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls2c"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls2d"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls2e"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls3"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls4"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls5"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls6":
+        if runtime_dynamic_state_algorithm == "algorithm_free_one_only_gs_relays" \
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls"\
+				or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls2"\
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls2b"\
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls2c"\
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls2d"\
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls2e"\
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls3"\
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls4"\
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls5"\
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls6":
             gsl_interfaces_per_satellite = 1
-        elif dynamic_state_algorithm == "algorithm_paired_many_only_over_isls":
+        elif runtime_dynamic_state_algorithm == "algorithm_paired_many_only_over_isls":
             gsl_interfaces_per_satellite = len(ground_stations)
         else:
             raise ValueError("Unknown dynamic state algorithm: " + dynamic_state_algorithm)
@@ -182,6 +199,6 @@ class MainHelper:
             duration_s,
             self.MAX_GSL_LENGTH_M,
             self.MAX_ISL_LENGTH_M,
-            dynamic_state_algorithm,
+            runtime_dynamic_state_algorithm,
             True
         )

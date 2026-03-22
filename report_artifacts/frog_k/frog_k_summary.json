@@ -1,0 +1,28 @@
+{
+  "config": {
+    "source": "hop_count.txt",
+    "hop_count_file": "/workspaces/FROGalgorithm-worktree/papier2/ns3_experiments/traffic_matrix_load/hop_count.txt",
+    "pairs_count_used": 100,
+    "pair_limit": 100
+  },
+  "k3_vs_k1": {
+    "pairs_count": 100,
+    "pairs_shorter_paths": 14,
+    "pairs_worse_paths": 0,
+    "pairs_equal_paths": 86,
+    "overall_baseline_mean_hops": 10.58,
+    "overall_candidate_mean_hops": 9.1,
+    "overall_delta_hops": 1.4800000000000004,
+    "overall_reduction_pct": 13.988657844990552
+  },
+  "k5_vs_k1": {
+    "pairs_count": 100,
+    "pairs_shorter_paths": 24,
+    "pairs_worse_paths": 0,
+    "pairs_equal_paths": 76,
+    "overall_baseline_mean_hops": 10.58,
+    "overall_candidate_mean_hops": 8.08,
+    "overall_delta_hops": 2.5,
+    "overall_reduction_pct": 23.629489603024574
+  }
+}

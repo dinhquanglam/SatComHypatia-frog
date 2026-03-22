@@ -67,6 +67,13 @@ class MainHelper:
             num_threads
     ):
 
+        # Compatibility aliases for FROG k-comparison experiments
+        algo_aliases = {
+            "algorithm_free_one_only_over_isls_k3": "algorithm_free_one_only_over_isls4",
+            "algorithm_free_one_only_over_isls_k5": "algorithm_free_one_only_over_isls6",
+        }
+        runtime_dynamic_state_algorithm = algo_aliases.get(dynamic_state_algorithm, dynamic_state_algorithm)
+
         # Add base name to setting
         name = self.BASE_NAME + "_" + isl_selection + "_" + gs_selection + "_" + dynamic_state_algorithm
 
@@ -134,10 +141,12 @@ class MainHelper:
         ground_stations = satgen.read_ground_stations_extended(
             output_generated_data_dir + "/" + name + "/ground_stations.txt"
         )
-        if dynamic_state_algorithm == "algorithm_free_one_only_gs_relays" \
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls":
+        if runtime_dynamic_state_algorithm == "algorithm_free_one_only_gs_relays" \
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls" \
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls4" \
+                or runtime_dynamic_state_algorithm == "algorithm_free_one_only_over_isls6":
             gsl_interfaces_per_satellite = 1
-        elif dynamic_state_algorithm == "algorithm_paired_many_only_over_isls":
+        elif runtime_dynamic_state_algorithm == "algorithm_paired_many_only_over_isls":
             gsl_interfaces_per_satellite = len(ground_stations)
         else:
             raise ValueError("Unknown dynamic state algorithm: " + dynamic_state_algorithm)
@@ -163,6 +172,6 @@ class MainHelper:
             duration_s,
             self.MAX_GSL_LENGTH_M,
             self.MAX_ISL_LENGTH_M,
-            dynamic_state_algorithm,
+            runtime_dynamic_state_algorithm,
             True
         )
