@@ -55,5 +55,22 @@ for doss in dossiers:
 		axes[2].legend(loc="upper left")
 		i+=1
 
+if i == 0:
+	print("Aucune donnee tcp_flow_*.csv trouvee dans runs/*/logs_ns3")
+	exit(0)
 
-plt.show()
+out_dir = "pdf"
+os.makedirs(out_dir, exist_ok=True)
+out_pdf = os.path.join(out_dir, "runs_logs4_tcp_overlay_120s_10mbps.pdf")
+out_png = os.path.join(out_dir, "runs_logs4_tcp_overlay_120s_10mbps.png")
+fig.tight_layout()
+fig.savefig(out_pdf)
+fig.savefig(out_png, dpi=180)
+print("Saved:", out_pdf)
+print("Saved:", out_png)
+
+# Keep interactive display only when a display is available.
+if os.environ.get("DISPLAY"):
+	plt.show()
+else:
+	plt.close(fig)

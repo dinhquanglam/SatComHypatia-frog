@@ -63,6 +63,33 @@ BibTeX citation:
 
 ## Getting started
 
+### Docker workflow (recommended for development)
+
+From the repository root:
+
+```bash
+docker compose build
+docker compose run --rm hypatia-dev
+```
+
+Inside the container (`/workspaces/SatComHypatia-frog` maps to your local repository), run:
+
+```bash
+bash hypatia_build.sh
+bash hypatia_run_tests.sh
+```
+
+When you are done, exit the shell. Your code edits remain on the host because the
+repository is bind-mounted.
+
+For VS Code Dev Containers:
+
+1. Install the `Dev Containers` extension in VS Code.
+2. Open this repository folder in VS Code.
+3. Run `Dev Containers: Reopen in Container`.
+
+Your shell will open as root in `/workspaces/SatComHypatia-frog`.
+
 1. System setup:
    - Python version 3.7+
    - Recent Linux operating system (e.g., Ubuntu 18+)

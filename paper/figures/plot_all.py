@@ -43,10 +43,13 @@ for plot_folder in plot_folders:
         for f in filenames:
             if f.endswith(".plt"):
                 print("Executing gnuplot: " + f)
-                local_shell.perfect_exec(
-                    "cd %s; gnuplot %s" % (plot_folder, f),
-                    output_redirect=exputil.OutputRedirect.CONSOLE
-                )
+                try:
+                    local_shell.perfect_exec(
+                        "cd %s; gnuplot %s" % (plot_folder, f),
+                        output_redirect=exputil.OutputRedirect.CONSOLE
+                    )
+                except Exception as e:
+                    print("Warning: skipping plot due to missing input data: %s/%s (%s)" % (plot_folder, f, e))
         break
 
 # Copy over a few directly

@@ -7,13 +7,16 @@ import os
 #------------------------------------#
 #        PARAMETRES A CHANGER        #
 #------------------------------------#
-mbps = 10
-tps_simu = "_20"
+mbps = int(os.environ.get("PAPIER2_MBPS", "10"))
+tps_simu = os.environ.get("PAPIER2_DURATION_TAG", "_120")
 #------------------------------------#
 
 chemin_tcp="/logs_ns3/tcp_flows.csv"
 chemin_udp="/logs_ns3/udp_bursts_incoming.csv","/logs_ns3/udp_bursts_outgoing.csv"
 dossiers=sorted([runsdoss for doss in os.listdir("runs") if os.path.isdir(runsdoss:="runs/"+doss) and tps_simu in doss])
+duration_label = tps_simu.lstrip("_")
+file_udp = f"results_udp_{mbps}_Mbps_for_{duration_label}s.txt"
+file_tcp = f"results_tcp_{mbps}_Mbps_for_{duration_label}s.txt"
 
 for doss in dossiers:
 	qte,nbpkt,i=0,0,0
@@ -36,9 +39,8 @@ for doss in dossiers:
 				qterec+=resi[10]/125000
 		print(doss,", [recus/emis] qtes: {:.2f}/{:.2f}Mb nb: {}/{}".format(qterec,qteem,nbpktrec,nbpktem))
 
-		file = 'results_udp_'+str(mbps)+'_Mbps_for_'+str(tps_simu)+'s.txt'
-		with open(file,'a') as fresudp :
-			fresudp.write(" ".join("[recus/emis] qtes: {:.2f}/{:.2f}Mb nb: {}/{} \n".format(qterec,qteem,nbpktrec,nbpktem)))
+		with open(file_udp,'a') as fresudp :
+			fresudp.write("[recus/emis] qtes: {:.2f}/{:.2f}Mb nb: {}/{}\n".format(qterec,qteem,nbpktrec,nbpktem))
 	else:
 		if not os.path.isfile(doss+chemin_tcp):
 			print(doss,"pas de donnees")
@@ -51,3 +53,5 @@ for doss in dossiers:
 				i+=1
 				finished+=(res[8]=="YES")
 		print(doss,", qte transmise: {:.2f}Mb, finis: {}/{}".format(qte,finished,i))
+		with open(file_tcp, "a") as frestcp:
+			frestcp.write("qte transmise: {:.2f}Mb, finis: {}/{}\n".format(qte, finished, i))

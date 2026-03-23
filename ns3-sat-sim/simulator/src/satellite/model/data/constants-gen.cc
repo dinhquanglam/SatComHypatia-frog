@@ -47,12 +47,15 @@ std::istream& ReadLine(std::istream& in, std::string& str) {
   str.clear();
 
   while(!done) {
-    char c = static_cast<char>(in.peek());
+    int c_int = in.peek();
+    if(c_int == EOF) {
+      return in;
+    }
+    char c = static_cast<char>(c_int);
 
     switch(c) {
       case '\n': in.ignore(1); return in;
       case '\r': in.ignore(1); car_ret = true; break;
-      case EOF: return in;
       default:
         // if this is a Mac OS file
         if(car_ret)

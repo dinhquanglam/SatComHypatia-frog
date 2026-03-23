@@ -1,0 +1,20 @@
+name: SatCom
+
+services:
+  hypatia-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hypatia:dev
+    container_name: HYPATIA
+    working_dir: /workspaces
+    volumes:
+      - ./:/workspaces/SatComHypatia-frog
+      - ../hypatia-imc2020:/workspaces/hypatia-imc2020
+      - pip-cache:/root/.cache/pip
+    stdin_open: true
+    tty: true
+    command: bash
+
+volumes:
+  pip-cache:

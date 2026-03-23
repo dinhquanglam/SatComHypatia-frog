@@ -1,0 +1,12 @@
+.git
+.github
+.vscode
+__pycache__
+*.pyc
+*.pyo
+*.swp
+*.tmp
+*.log
+ns3-sat-sim/build
+ns3-sat-sim/.waf-*
+satviz/node_modules

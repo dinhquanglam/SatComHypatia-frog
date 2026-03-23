@@ -1,0 +1,10 @@
+{
+  "name": "HYPATIA",
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "hypatia-dev",
+  "workspaceFolder": "/workspaces",
+  "remoteUser": "root",
+  "shutdownAction": "stopCompose"
+}

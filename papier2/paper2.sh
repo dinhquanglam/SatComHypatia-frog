@@ -67,7 +67,17 @@ if (( ${#liste_debitISL[@]} != ${#liste_arguments[@]} )); then
 	exit 1
 fi
 
-for ((i=0; i<${#liste_arguments[@]}; ++i )) ; do
+start_index="${START_INDEX:-0}"
+end_index="${END_INDEX:-$(( ${#liste_arguments[@]} - 1 ))}"
+
+if (( start_index < 0 || end_index < start_index || end_index >= ${#liste_arguments[@]} )); then
+	echo "Invalid START_INDEX/END_INDEX: START_INDEX=${start_index} END_INDEX=${end_index} (valid range 0..$(( ${#liste_arguments[@]} - 1 )))"
+	exit 1
+fi
+
+echo "Running paper2 workloads from index ${start_index} to ${end_index}"
+
+for ((i=start_index; i<=end_index; ++i )) ; do
 	debitISL="${liste_debitISL[$i]}"
 	read -a arguments <<< "${liste_arguments[$i]}"
 	
