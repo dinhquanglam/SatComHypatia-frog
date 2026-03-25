@@ -154,7 +154,8 @@ class MainHelper:
                 or dynamic_state_algorithm == "algorithm_free_one_only_over_isls3"\
                 or dynamic_state_algorithm == "algorithm_free_one_only_over_isls4"\
                 or dynamic_state_algorithm == "algorithm_free_one_only_over_isls5"\
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls6":
+                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls6"\
+                or dynamic_state_algorithm.startswith("algorithm_direction_aware_floyd_warshall"):
             gsl_interfaces_per_satellite = 1
         elif dynamic_state_algorithm == "algorithm_paired_many_only_over_isls":
             gsl_interfaces_per_satellite = len(ground_stations)

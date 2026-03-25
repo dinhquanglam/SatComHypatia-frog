@@ -46,6 +46,34 @@ from .algorithm_free_one_only_over_isls5 import algorithm_free_one_only_over_isl
 
 from .algorithm_free_one_only_over_isls6 import algorithm_free_one_only_over_isls6
 
+from .algorithm_direction_aware_floyd_warshall import algorithm_direction_aware_floyd_warshall
+
+
+def _parse_direction_aware_beta(dynamic_state_algorithm):
+    prefix = "algorithm_direction_aware_floyd_warshall"
+    if dynamic_state_algorithm == prefix:
+        return 0.0
+
+    beta_prefix = prefix + "_beta_"
+    if not dynamic_state_algorithm.startswith(beta_prefix):
+        raise ValueError("Invalid direction-aware algorithm: " + str(dynamic_state_algorithm))
+
+    beta_token = dynamic_state_algorithm[len(beta_prefix):].replace("p", ".")
+    if "." not in beta_token and beta_token.count("_") == 1:
+        left, right = beta_token.split("_")
+        beta_token = left + "." + right
+
+    try:
+        beta = float(beta_token)
+    except ValueError as e:
+        raise ValueError("Invalid direction-aware beta in algorithm name: " + str(dynamic_state_algorithm)) from e
+
+    if beta < 0:
+        raise ValueError("Direction-aware beta must be non-negative, got: " + str(beta))
+
+    return beta
+
+
 def generate_dynamic_state(
         output_dynamic_state_dir,
         epoch,
@@ -411,6 +439,28 @@ def generate_dynamic_state_at(
             prev_output,
             enable_verbose_logs,
             is_last
+        )
+
+    elif dynamic_state_algorithm == "algorithm_direction_aware_floyd_warshall" \
+            or dynamic_state_algorithm.startswith("algorithm_direction_aware_floyd_warshall_beta_"):
+        beta = _parse_direction_aware_beta(dynamic_state_algorithm)
+
+        return algorithm_direction_aware_floyd_warshall(
+            output_dynamic_state_dir,
+            time_since_epoch_ns,
+            epoch,
+            time,
+            satellites,
+            ground_stations,
+            sat_net_graph_only_satellites_with_isls,
+            ground_station_satellites_in_range,
+            num_isls_per_sat,
+            sat_neighbor_to_if,
+            list_gsl_interfaces_info,
+            prev_output,
+            enable_verbose_logs,
+            is_last,
+            beta
         )
 
     elif dynamic_state_algorithm == "algorithm_free_gs_one_sat_many_only_over_isls":
