@@ -45,6 +45,7 @@ from .algorithm_free_one_only_over_isls4 import algorithm_free_one_only_over_isl
 from .algorithm_free_one_only_over_isls5 import algorithm_free_one_only_over_isls5
 
 from .algorithm_free_one_only_over_isls6 import algorithm_free_one_only_over_isls6
+from .algorithm_direction_aware_floyd_warshall import algorithm_direction_aware_floyd_warshall
 
 def generate_dynamic_state(
         output_dynamic_state_dir,
@@ -72,7 +73,10 @@ def generate_dynamic_state(
     is_last=False
     for time_since_epoch_ns in range(offset_ns, simulation_end_time_ns, time_step_ns):
         if not enable_verbose_logs:
-            if i % int(math.floor(total_iterations) / 10.0) == 0:
+            progress_interval = int(math.floor(total_iterations) / 10.0)
+            if progress_interval <= 0:
+                progress_interval = 1
+            if i % progress_interval == 0:
                 print("Progress: calculating for T=%d (time step granularity is still %d ms)" % (
                     time_since_epoch_ns, time_step_ns / 1000000
                 ))
@@ -491,6 +495,26 @@ def generate_dynamic_state_at(
             prev_output,
             enable_verbose_logs,
             is_last
+        )
+
+    elif dynamic_state_algorithm.startswith("algorithm_direction_aware_floyd_warshall"):
+
+        return algorithm_direction_aware_floyd_warshall(
+            output_dynamic_state_dir,
+            time_since_epoch_ns,
+            satellites,
+            ground_stations,
+            sat_net_graph_only_satellites_with_isls,
+            ground_station_satellites_in_range,
+            num_isls_per_sat,
+            sat_neighbor_to_if,
+            list_gsl_interfaces_info,
+            prev_output,
+            enable_verbose_logs,
+            is_last,
+            epoch_str=str(epoch),
+            date_str=str(time),
+            dynamic_state_algorithm=dynamic_state_algorithm,
         )
         
     else:

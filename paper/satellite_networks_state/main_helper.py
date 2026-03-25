@@ -135,7 +135,8 @@ class MainHelper:
             output_generated_data_dir + "/" + name + "/ground_stations.txt"
         )
         if dynamic_state_algorithm == "algorithm_free_one_only_gs_relays" \
-                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls":
+                or dynamic_state_algorithm == "algorithm_free_one_only_over_isls" \
+                or dynamic_state_algorithm.startswith("algorithm_direction_aware_floyd_warshall"):
             gsl_interfaces_per_satellite = 1
         elif dynamic_state_algorithm == "algorithm_paired_many_only_over_isls":
             gsl_interfaces_per_satellite = len(ground_stations)

@@ -25,8 +25,28 @@ from satgen.ground_stations import *
 from satgen.tles import *
 import exputil
 import numpy as np
+import os
 from .print_routes_and_rtt import print_routes_and_rtt
 from statsmodels.distributions.empirical_distribution import ECDF
+
+
+def _load_commodities_list(satellite_network_dir):
+    env_path = os.environ.get("SATGEN_COMMODITIES_FILE")
+    candidates = []
+    if env_path:
+        candidates.append(env_path)
+    candidates.append(os.path.join(satellite_network_dir, "commodites.temp"))
+    candidates.append(os.path.join(os.path.dirname(satellite_network_dir), "commodites.temp"))
+    candidates.append(os.path.join(os.path.dirname(os.path.dirname(satellite_network_dir)), "commodites.temp"))
+    candidates.append(os.path.join("..", "papier2", "satellite_networks_state", "commodites.temp"))
+    for p in candidates:
+        if p and os.path.isfile(p):
+            with open(p, "r") as f_comms:
+                return eval(f_comms.readline())
+    raise FileNotFoundError(
+        "Could not locate commodities file. Set SATGEN_COMMODITIES_FILE or place "
+        "commodites.temp next to the satellite_networks_state folder."
+    )
 
 
 def analyze_path(
@@ -71,12 +91,8 @@ def analyze_path(
     time_step_num_path_changes = []
     time_step_num_fstate_updates = []
 
-    #get commodities list
-    with open("../papier2/satellite_networks_state/commodites.temp","r") as f_comms:
-            list_comms = eval(f_comms.readline())
-            #for (src_node_id,dst_node_id,_) in list_comms:
-            #    src = src_node_id - len(satellites)
-            #    dst = dst_node_id - len(satellites)
+    # Commodities (pairs) to analyze
+    list_comms = _load_commodities_list(satellite_network_dir)
 
     # For each time moment
     fstate = {}

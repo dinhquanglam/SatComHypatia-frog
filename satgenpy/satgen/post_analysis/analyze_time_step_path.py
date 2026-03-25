@@ -133,29 +133,26 @@ def analyze_time_step_path(output_data_dir, satellite_network_dir,
 
     #################################################
 
-    # Write and plot ECDFs
-    for element in [
-        ("ecdf_overall_time_between_path_change", ECDF(time_between_path_change_ns_list)),
-    ]:
-        name = element[0]
-        ecdf = element[1]
-        with open(data_dir + "/" + name + ".txt", "w+") as f_out:
+    def _write_ecdf(name, values):
+        out_path = data_dir + "/" + name + ".txt"
+        with open(out_path, "w+") as f_out:
+            if len(values) == 0:
+                return
+            ecdf = ECDF(values)
             for i in range(len(ecdf.x)):
                 f_out.write(str(ecdf.x[i]) + "," + str(ecdf.y[i]) + "\n")
+
+    # Write ECDFs (guard against empty lists on very short simulations)
+    _write_ecdf("ecdf_overall_time_between_path_change", time_between_path_change_ns_list)
 
     # Find all the lists
     for c_idx in range(len(configs)):
         config = configs[c_idx]
 
-        # Write and plot ECDFs
-        for element in [
-            ("ecdf_pairs_%dms_missed_path_changes" % config[0], ECDF(per_config_pair_missed_path_changes_list[c_idx])),
-        ]:
-            name = element[0]
-            ecdf = element[1]
-            with open(data_dir + "/" + name + ".txt", "w+") as f_out:
-                for i in range(len(ecdf.x)):
-                    f_out.write(str(ecdf.x[i]) + "," + str(ecdf.y[i]) + "\n")
+        _write_ecdf(
+            "ecdf_pairs_%dms_missed_path_changes" % config[0],
+            per_config_pair_missed_path_changes_list[c_idx],
+        )
 
     # Histograms
     with open(data_dir + "/histogram_missed_path_changes.txt", "w+") as f_out:

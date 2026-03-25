@@ -1,6 +1,21 @@
 import math
 import networkx as nx
-from ..dynamic_mcnf_paper_code.interface import calcul_paths
+
+
+def _lazy_calcul_paths():
+    """
+    The MCNF-based routines depend on the dynamic_mcnf_paper_code stack, which may
+    require optional dependencies (e.g., gurobipy). Import lazily so that the
+    Floyd–Warshall baseline and other non-MCNF modes work without them.
+    """
+    try:
+        from ..dynamic_mcnf_paper_code.interface import calcul_paths  # pylint: disable=import-error
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(
+            "MCNF-based routing requires optional dependencies that are not installed "
+            "(e.g., 'gurobipy'). Install them or avoid algorithm_*over_isls2* modes."
+        ) from e
+    return calcul_paths
 
 
 def calculate_fstate_shortest_path_without_gs_relaying(
@@ -17,12 +32,49 @@ def calculate_fstate_shortest_path_without_gs_relaying(
         enable_verbose_logs,
         is_last
 ):
-
-    # Calculate shortest path distances
+    # Calculate shortest path distances (Floyd–Warshall default baseline)
     if enable_verbose_logs:
         print("  > Calculating Floyd-Warshall for graph without ground-station relays")
     # (Note: Numpy has a deprecation warning here because of how networkx uses matrices)
     dist_sat_net_without_gs = nx.floyd_warshall_numpy(sat_net_graph_only_satellites_with_isls)
+
+    return calculate_fstate_shortest_path_without_gs_relaying_with_dist(
+        output_dynamic_state_dir,
+        time_since_epoch_ns,
+        num_satellites,
+        num_ground_stations,
+        sat_net_graph_only_satellites_with_isls,
+        dist_sat_net_without_gs,
+        num_isls_per_sat,
+        gid_to_sat_gsl_if_idx,
+        ground_station_satellites_in_range_candidates,
+        sat_neighbor_to_if,
+        prev_fstate,
+        enable_verbose_logs,
+        is_last,
+    )
+
+
+def calculate_fstate_shortest_path_without_gs_relaying_with_dist(
+        output_dynamic_state_dir,
+        time_since_epoch_ns,
+        num_satellites,
+        num_ground_stations,
+        sat_net_graph_only_satellites_with_isls,
+        dist_sat_net_without_gs,
+        num_isls_per_sat,
+        gid_to_sat_gsl_if_idx,
+        ground_station_satellites_in_range_candidates,
+        sat_neighbor_to_if,
+        prev_fstate,
+        enable_verbose_logs,
+        is_last
+):
+    """
+    Same as calculate_fstate_shortest_path_without_gs_relaying, but accepts a precomputed
+    all-pairs shortest-path distance matrix. This enables a Dijkstra fallback or
+    custom distance computation without duplicating forwarding-state logic.
+    """
 
     # Forwarding state
     fstate = {}
@@ -208,6 +260,7 @@ def calculate_fstate_shortest_path_without_gs_relaying2(
         #	total_net_graph.add_edge(satid, num_satellites+groundStationId, weight = 10000000)#distanceSatGS
 
     #compute optimal path
+    calcul_paths = _lazy_calcul_paths()
     if version=='a':
         list_paths = calcul_paths(total_net_graph, prev_fstate, commodity_list, debitISL, "SRR_arc_node_one_timestep")
     elif version=='b':
@@ -741,6 +794,7 @@ def calculate_fstate_shortest_path_without_gs_relaying4(
         #	total_net_graph.add_edge(satid, num_satellites+groundStationId, weight = 10000000)#distanceSatGS
 
     #compute optimal path
+    calcul_paths = _lazy_calcul_paths()
     if version=='a':
         list_paths = calcul_paths(total_net_graph, prev_fstate, commodity_list, debitISL, "SRR_arc_node_one_timestep")
     elif version=='b':
@@ -1297,6 +1351,7 @@ def calculate_fstate_shortest_path_without_gs_relaying6(
         #	total_net_graph.add_edge(satid, num_satellites+groundStationId, weight = 10000000)#distanceSatGS
 
     #compute optimal path
+    calcul_paths = _lazy_calcul_paths()
     if version=='a':
         list_paths = calcul_paths(total_net_graph, prev_fstate, commodity_list, debitISL, "SRR_arc_node_one_timestep")
     elif version=='b':

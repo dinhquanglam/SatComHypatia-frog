@@ -27,6 +27,7 @@ from satgen.ground_stations import *
 from satgen.tles import *
 import exputil
 import numpy as np
+import os
 from .print_routes_and_rtt import print_routes_and_rtt
 from statsmodels.distributions.empirical_distribution import ECDF
 
@@ -34,6 +35,38 @@ from statsmodels.distributions.empirical_distribution import ECDF
 SPEED_OF_LIGHT_M_PER_S = 299792458.0
 
 GEODESIC_ECDF_PLOT_CUTOFF_KM = 500
+
+
+def _load_commodities_list(satellite_network_dir):
+    """
+    Load commodities list used by the analysis.
+
+    Historically this repo stored it in paper2's folder. Prefer a location derived
+    from the provided satellite_network_dir, but keep the legacy fallback so
+    existing workflows continue to work.
+    """
+    env_path = os.environ.get("SATGEN_COMMODITIES_FILE")
+    candidates = []
+    if env_path:
+        candidates.append(env_path)
+
+    # Common layout: <...>/satellite_networks_state/gen_data/<constellation...>
+    candidates.append(os.path.join(satellite_network_dir, "commodites.temp"))
+    candidates.append(os.path.join(os.path.dirname(satellite_network_dir), "commodites.temp"))
+    candidates.append(os.path.join(os.path.dirname(os.path.dirname(satellite_network_dir)), "commodites.temp"))
+
+    # Legacy paper2 layout when running from satgenpy/
+    candidates.append(os.path.join("..", "papier2", "satellite_networks_state", "commodites.temp"))
+
+    for p in candidates:
+        if p and os.path.isfile(p):
+            with open(p, "r") as f_comms:
+                return eval(f_comms.readline())
+
+    raise FileNotFoundError(
+        "Could not locate commodities file. Set SATGEN_COMMODITIES_FILE or place "
+        "commodites.temp next to the satellite_networks_state folder."
+    )
 
 
 def analyze_rtt(
@@ -73,12 +106,8 @@ def analyze_rtt(
     max_gsl_length_m = exputil.parse_positive_float(description.get_property_or_fail("max_gsl_length_m"))
     max_isl_length_m = exputil.parse_positive_float(description.get_property_or_fail("max_isl_length_m"))
 
-    #get commodities
-    with open("../papier2/satellite_networks_state/commodites.temp","r") as f_comms:
-        list_comms = eval(f_comms.readline())
-        #for (src_node_id,dst_node_id,_) in list_comms:
-        #    src = src_node_id - len(satellites)
-        #    dst = dst_node_id - len(satellites)
+    # Commodities (pairs) to analyze
+    list_comms = _load_commodities_list(satellite_network_dir)
     # Analysis
     rtt_list_per_pair = []
     for i in range(len(ground_stations)):

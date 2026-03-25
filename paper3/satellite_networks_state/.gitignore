@@ -1,0 +1,5 @@
+gen_data
+*.pyc
+*.temp
+input_data/commodites.txt
+

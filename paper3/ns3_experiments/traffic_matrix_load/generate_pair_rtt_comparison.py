@@ -1,0 +1,97 @@
+#[tcp_flow_id],[now_in_ns],[progress_byte/cwnd_byte/rtt_ns]
+"""
+README
+Plot results obtained when enabling logs in the ns3 simulation 
+to see which commodity is involved, refer to hypatia/papier2/satellite_networks_state/input_data/commodites.txt
+visualizations of the path can be found in the pdf files hypatia/papier2/satgenpy_analysis/data/*/*/manual/pdf
+"""
+import os
+import matplotlib.pyplot as plt
+
+
+interdoss="/logs_ns3/"#tcp_flow"[id]_{progress, cwnd, rtt}.csv`
+# Include all run dirs; style function filters what we plot.
+dossiers=sorted([runsdoss for doss in os.listdir("runs") if os.path.isdir(runsdoss:="runs/"+doss)])
+
+# Match HAL Figure 4 legend/color convention:
+# k=1 -> green, k=3 -> blue, k=5 -> red
+def _style_for_run_dir(run_dir_name):
+	if run_dir_name.endswith("_algorithm_free_one_only_over_isls3"):
+		return ("k = 3", "b")
+	if run_dir_name.endswith("_algorithm_free_one_only_over_isls5"):
+		return ("k = 5", "r")
+	if run_dir_name.endswith("_algorithm_free_one_only_over_isls"):
+		return ("k = 1", "g")
+	if "_algorithm_direction_aware_floyd_warshall_beta0p2" in run_dir_name:
+		return ("DA-FW beta=0.2", "#ff7f0e")
+	if "_algorithm_direction_aware_floyd_warshall_beta0p4" in run_dir_name:
+		return ("DA-FW beta=0.4", "#2ca02c")
+	if "_algorithm_direction_aware_floyd_warshall_beta0p6" in run_dir_name:
+		return ("DA-FW beta=0.6", "#9467bd")
+	return (None, None)
+
+fig,axes=plt.subplots(3,1, figsize=(16,9), dpi=80, facecolor="w", edgecolor='k')
+i=0
+for doss in dossiers:
+	run_name = os.path.basename(doss)
+	cur_label, cur_color = _style_for_run_dir(run_name)
+	if cur_label is None:
+		continue
+
+	fics=sorted([fic for fic in os.listdir(doss+interdoss) if os.path.isfile(doss+interdoss+fic) and "tcp_flow_" in fic])
+	if fics:
+		print(doss)
+		ident=fics[0].split('_')[2]
+		
+		with open(doss+interdoss+"tcp_flow_"+ident+"_cwnd.csv","r") as fcwnd,\
+			open(doss+interdoss+"tcp_flow_"+ident+"_progress.csv","r") as fprog,\
+			open(doss+interdoss+"tcp_flow_"+ident+"_rtt.csv","r") as frtt:
+			cwnds=fcwnd.readlines()
+			progres=fprog.readlines()
+			rtts=frtt.readlines()
+
+		t_cwnds=[int(line.split(',')[1])/10**9 for line in cwnds]
+		data_cwnds=[int(line.strip().split(',')[-1]) for line in cwnds]
+		fig.suptitle('commodity id:'+cwnds[0].split(',')[0]+" from "+doss)
+		#axes[0].title('cwnds id'+cwnds[0].split(',')[0]+" "+doss)
+		axes[0].set_xlabel("temps simu(s)")
+		axes[0].set_ylabel("cwnd (bytes)")
+		axes[0].plot(t_cwnds,data_cwnds,cur_color, label=cur_label)
+		axes[0].legend(loc="upper left")
+
+		t_rtts=[int(line.split(',')[1])/10**9 for line in rtts]
+		data_rtts=[int(line.strip().split(',')[-1])/10**6 for line in rtts]
+		#axes[1].title('RTTs id'+cwnds[0].split(',')[0]+" "+doss)
+		axes[1].set_xlabel("temps simu(s)")
+		axes[1].set_ylabel("rtts (ms)")
+		axes[1].plot(t_rtts,data_rtts,cur_color, label=cur_label)
+		axes[1].legend(loc="upper left")
+
+		t_prgs=[int(line.split(',')[1])/10**9 for line in progres]
+		data_prgs=[int(line.strip().split(',')[-1]) for line in progres]
+		#axes[2].title('progres id'+cwnds[0].split(',')[0]+" "+doss)
+		axes[2].set_xlabel("temps simu(s)")
+		axes[2].set_ylabel("progres (bytes)")
+		axes[2].plot(t_prgs,data_prgs,cur_color, label=cur_label)
+		axes[2].legend(loc="upper left")
+		i+=1
+
+if i == 0:
+	print("Aucune donnee tcp_flow_*.csv trouvee dans runs/*/logs_ns3")
+	exit(0)
+
+out_dir = "pdf"
+os.makedirs(out_dir, exist_ok=True)
+out_pdf = os.path.join(out_dir, "runs_logs4_tcp_overlay_120s_10mbps.pdf")
+out_png = os.path.join(out_dir, "runs_logs4_tcp_overlay_120s_10mbps.png")
+fig.tight_layout()
+fig.savefig(out_pdf)
+fig.savefig(out_png, dpi=180)
+print("Saved:", out_pdf)
+print("Saved:", out_png)
+
+# Keep interactive display only when a display is available.
+if os.environ.get("DISPLAY"):
+	plt.show()
+else:
+	plt.close(fig)
