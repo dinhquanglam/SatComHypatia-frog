@@ -1,0 +1,20 @@
+{
+  "beta0_semantic_equivalence_all_timesteps": true,
+  "beta0_sample_routes_equal": true,
+  "alpha_summary": {
+    "count": 16848,
+    "min": -0.99464642351647,
+    "mean": 9.895626716972896e-05,
+    "max": 0.99965451788939,
+    "fraction_alpha_gt_0": 0.5,
+    "fraction_alpha_lt_0": 0.5,
+    "fraction_alpha_approx_0": 0.0
+  },
+  "velocity_summary": {
+    "count": 4212,
+    "min_mps": 7405.223841751543,
+    "mean_mps": 7434.684791805635,
+    "max_mps": 7471.140639349492
+  },
+  "missing_algorithms": []
+}

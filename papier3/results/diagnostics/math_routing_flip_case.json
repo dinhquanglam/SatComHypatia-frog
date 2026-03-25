@@ -1,0 +1,39 @@
+{
+  "beta": 0.2,
+  "baseline_edges_w0": {
+    "(0, 1)": 10.0,
+    "(1, 3)": 10.0,
+    "(0, 2)": 9.0,
+    "(2, 3)": 9.0
+  },
+  "alpha_by_edge": {
+    "(0, 1)": 1.0,
+    "(1, 3)": 1.0,
+    "(0, 2)": -1.0,
+    "(2, 3)": -1.0
+  },
+  "baseline_shortest_path": [
+    0,
+    2,
+    3
+  ],
+  "baseline_shortest_path_cost": 18.0,
+  "da_shortest_path": [
+    0,
+    1,
+    3
+  ],
+  "da_shortest_path_cost": 16.0,
+  "expected_baseline_path": [
+    0,
+    2,
+    3
+  ],
+  "expected_da_path": [
+    0,
+    1,
+    3
+  ],
+  "pass_baseline_path": true,
+  "pass_da_path": true
+}

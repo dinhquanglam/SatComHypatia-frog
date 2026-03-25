@@ -1,0 +1,9 @@
+{
+  "count": 16848,
+  "min": -0.99464642351647,
+  "mean": 9.895626716972896e-05,
+  "max": 0.99965451788939,
+  "fraction_alpha_gt_0": 0.5,
+  "fraction_alpha_lt_0": 0.5,
+  "fraction_alpha_approx_0": 0.0
+}

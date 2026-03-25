@@ -1,0 +1,13 @@
+timestep_ns,directed_edge_count,expected_directed_edge_count,edge_count_match,is_strongly_connected,min_out_degree,max_out_degree,missing_if_mapping_edges
+0,1404,1404,True,True,4,4,0
+10000000000,1404,1404,True,True,4,4,0
+20000000000,1404,1404,True,True,4,4,0
+30000000000,1404,1404,True,True,4,4,0
+40000000000,1404,1404,True,True,4,4,0
+50000000000,1404,1404,True,True,4,4,0
+60000000000,1404,1404,True,True,4,4,0
+70000000000,1404,1404,True,True,4,4,0
+80000000000,1404,1404,True,True,4,4,0
+90000000000,1404,1404,True,True,4,4,0
+100000000000,1404,1404,True,True,4,4,0
+110000000000,1404,1404,True,True,4,4,0

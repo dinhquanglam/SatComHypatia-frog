@@ -1,0 +1,192 @@
+[
+  {
+    "case_id": "alpha_pos_1",
+    "p_i": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "p_j": [
+      10.0,
+      0.0,
+      0.0
+    ],
+    "v_i": [
+      5.0,
+      0.0,
+      0.0
+    ],
+    "link_vector": [
+      10.0,
+      0.0,
+      0.0
+    ],
+    "link_direction_d": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "baseline_weight_w0": 1000.0,
+    "beta": 0.2,
+    "expected_alpha_hand": 1.0,
+    "computed_alpha_code": 1.0,
+    "alpha_abs_error": 0.0,
+    "expected_weight_hand": 800.0,
+    "computed_weight_code": 800.0,
+    "weight_abs_error": 0.0,
+    "pass_alpha": true,
+    "pass_weight": true
+  },
+  {
+    "case_id": "alpha_zero",
+    "p_i": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "p_j": [
+      0.0,
+      10.0,
+      0.0
+    ],
+    "v_i": [
+      5.0,
+      0.0,
+      0.0
+    ],
+    "link_vector": [
+      0.0,
+      10.0,
+      0.0
+    ],
+    "link_direction_d": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "baseline_weight_w0": 1000.0,
+    "beta": 0.2,
+    "expected_alpha_hand": 0.0,
+    "computed_alpha_code": 0.0,
+    "alpha_abs_error": 0.0,
+    "expected_weight_hand": 1000.0,
+    "computed_weight_code": 1000.0,
+    "weight_abs_error": 0.0,
+    "pass_alpha": true,
+    "pass_weight": true
+  },
+  {
+    "case_id": "alpha_neg_1",
+    "p_i": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "p_j": [
+      -10.0,
+      0.0,
+      0.0
+    ],
+    "v_i": [
+      5.0,
+      0.0,
+      0.0
+    ],
+    "link_vector": [
+      -10.0,
+      0.0,
+      0.0
+    ],
+    "link_direction_d": [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    "baseline_weight_w0": 1000.0,
+    "beta": 0.2,
+    "expected_alpha_hand": -1.0,
+    "computed_alpha_code": -1.0,
+    "alpha_abs_error": 0.0,
+    "expected_weight_hand": 1200.0,
+    "computed_weight_code": 1200.0,
+    "weight_abs_error": 0.0,
+    "pass_alpha": true,
+    "pass_weight": true
+  },
+  {
+    "case_id": "alpha_pos_03",
+    "p_i": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "p_j": [
+      10.0,
+      0.0,
+      0.0
+    ],
+    "v_i": [
+      0.3,
+      0.9539392014169457,
+      0.0
+    ],
+    "link_vector": [
+      10.0,
+      0.0,
+      0.0
+    ],
+    "link_direction_d": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "baseline_weight_w0": 1000.0,
+    "beta": 0.2,
+    "expected_alpha_hand": 0.3,
+    "computed_alpha_code": 0.3,
+    "alpha_abs_error": 0.0,
+    "expected_weight_hand": 940.0,
+    "computed_weight_code": 940.0,
+    "weight_abs_error": 0.0,
+    "pass_alpha": true,
+    "pass_weight": true
+  },
+  {
+    "case_id": "alpha_pos_07",
+    "p_i": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "p_j": [
+      10.0,
+      0.0,
+      0.0
+    ],
+    "v_i": [
+      0.7,
+      0.714142842854285,
+      0.0
+    ],
+    "link_vector": [
+      10.0,
+      0.0,
+      0.0
+    ],
+    "link_direction_d": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "baseline_weight_w0": 1000.0,
+    "beta": 0.2,
+    "expected_alpha_hand": 0.7,
+    "computed_alpha_code": 0.7000000000000002,
+    "alpha_abs_error": 2.220446049250313e-16,
+    "expected_weight_hand": 860.0,
+    "computed_weight_code": 860.0,
+    "weight_abs_error": 0.0,
+    "pass_alpha": true,
+    "pass_weight": true
+  }
+]
