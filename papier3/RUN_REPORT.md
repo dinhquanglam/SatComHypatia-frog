@@ -16,6 +16,7 @@ Branch used: `applyDAD`
   - smoke verification (`k=1`, `k=3`, `k=5`, DA-FW)
   - full 7-variant comparison run
   - summary table generation
+  - confidence interval table generation
   - plot generation
 
 ## 2) Files Changed
@@ -33,6 +34,8 @@ Branch used: `applyDAD`
   - End-to-end smoke + generation + analysis + plotting orchestrator
 - `papier3/scripts/compute_summary.py` (new)
   - Metric extraction and summary table generation
+- `papier3/scripts/compute_confidence_intervals.py` (new)
+  - 95% CI computation for task-4.2 metrics from raw sampled routes
 - `papier3/scripts/plot_results.py` (new)
   - Comparison and DA-beta plots
 - `papier3/scripts/run_all.sh` (new)
@@ -58,7 +61,12 @@ python3 papier3/scripts/run_experiments.py --config papier3/config/experiment_co
 python3 papier3/scripts/run_experiments.py --config papier3/config/experiment_config.json --skip-generation --skip-smoke
 ```
 
-4. Optional force full regeneration (ignore cached dynamic-state directories):
+4. Compute task-4.2 confidence intervals from raw samples:
+```bash
+python3 papier3/scripts/compute_confidence_intervals.py --config papier3/config/experiment_config.json
+```
+
+5. Optional force full regeneration (ignore cached dynamic-state directories):
 ```bash
 python3 papier3/scripts/run_experiments.py --config papier3/config/experiment_config.json --force-regenerate
 ```
@@ -88,6 +96,8 @@ Main outputs:
   - `papier3/results/summary_metrics.csv`
   - `papier3/results/summary_metrics.md`
   - `papier3/results/summary_metrics.json`
+  - `papier3/results/summary_metrics_ci.csv`
+  - `papier3/results/summary_metrics_ci.json`
 - Run manifest:
   - `papier3/results/run_manifest.json`
 - Plots:
@@ -114,20 +124,41 @@ Dynamic-state regeneration:
 
 ## 8) Result Interpretation (This Practical Run)
 
-From `papier3/results/summary_metrics.csv`:
+Data source: `papier3/results/summary_metrics.csv` (average values only).
 
-- `beta=0.0` DA-FW matches baseline exactly (as expected):
-  - same RTT, hop count, path-change rate, forwarding-state update rate
-- In this scenario, increasing DA beta (`0.1 -> 0.3`) increased:
-  - average RTT
-  - average hop count
-  - forwarding-state updates per step
-- Reachability proxy (`pdr_proxy`) remained `1.0` for all tested variants.
-- Existing FROG variants (`k=3`, `k=5`) outperformed baseline and DA-FW on RTT/hop-count in this run.
+### 8.1) Comparison Across All Routing Algorithms (Average)
 
-## 9) Limitations / Caveats
+| Algorithm | End-to-end latency (ms) | Packet delivery ratio | Average hop count | Path stability (route-change rate) |
+|---|---:|---:|---:|---:|
+| baseline_k1 | 167.325 | 1.0000 | 11.282 | 0.1000 |
+| frog_k3 | 147.077 | 1.0000 | 9.907 | 0.1100 |
+| frog_k5 | 139.359 | 1.0000 | 9.355 | 0.1100 |
+| da_fw_beta_0_0 | 167.325 | 1.0000 | 11.282 | 0.1000 |
+| da_fw_beta_0_1 | 169.487 | 1.0000 | 11.365 | 0.1027 |
+| da_fw_beta_0_2 | 169.732 | 1.0000 | 11.398 | 0.1036 |
+| da_fw_beta_0_3 | 175.353 | 1.0000 | 11.633 | 0.1027 |
 
-- Throughput/goodput for DA-FW variants is not present in this run (NS-3 traffic runs were not regenerated for DA-FW); those fields are `NA`.
-- `pdr_proxy` is forwarding-state reachability, not packet-level NS-3 delivery ratio.
-- Velocity vector is approximated by finite difference of satellite positions with a 1-second delta in the new DA-FW implementation.
-- No confidence intervals were computed in this practical subset run.
+### 8.2) Metric-by-Metric Expression
+
+1. End-to-end latency:
+- Lower is better.
+- `frog_k5` is best (`139.359 ms`), then `frog_k3` (`147.077 ms`).
+- DA-FW `beta=0.0` matches baseline exactly (`167.325 ms`).
+- DA-FW `beta=0.1`, `0.2`, `0.3` is worse than baseline in this run.
+
+2. Packet delivery ratio:
+- Higher is better.
+- All compared algorithms are equal at `1.0000`.
+- This run shows no reachability difference across methods.
+
+3. Average hop count:
+- Lower is better.
+- `frog_k5` is best (`9.355`), then `frog_k3` (`9.907`).
+- Baseline and DA-FW `beta=0.0` are equal (`11.282`).
+- DA-FW `beta=0.1`, `0.2`, `0.3` increases hop count.
+
+4. Path stability (route-change rate):
+- Lower is more stable.
+- Baseline and DA-FW `beta=0.0` are most stable (`0.1000`).
+- DA-FW `beta=0.1`, `0.2`, `0.3` is slightly less stable (`0.1027`, `0.1036`, `0.1027`).
+- FROG `k=3` and `k=5` have higher route-change rate (`0.1100`).
