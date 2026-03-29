@@ -92,6 +92,28 @@ Generated/used artifacts:
 - image derived from `Dockerfile`
 - running container mounted on `/workspaces/SatComHypatia-frog`
 
+Bug met in this step when checking the repository state inside the container:
+
+```text
+error: read error while indexing .travis.yml: Resource deadlock avoided
+error: read error while indexing LICENSE: Resource deadlock avoided
+error: read error while indexing integration_tests/run_integration_tests.sh: Resource deadlock avoided
+Bus error
+```
+
+Fix used in this workspace:
+
+```bash
+git config --local core.checkStat minimal
+git config --local core.trustctime false
+git config --local core.preloadIndex false
+```
+
+Why this fix was needed:
+
+- the repository was bind-mounted from an iCloud-backed host path
+- Git index refreshes inside the container were unstable until these repo-local settings were applied
+
 ### 2.3 Install dependencies inside the container
 
 Command:
@@ -127,6 +149,16 @@ Why these matter:
 - `unzip` is needed during simulator build
 - `gurobipy` is imported by this branch of `satgenpy`
 
+Bug met in this step:
+
+- the script did not fail with a Python or shell error, but it blocked waiting for interactive confirmation
+
+Fix used in this workspace:
+
+```bash
+docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog && printf "y\n" | bash hypatia_install_dependencies.sh'
+```
+
 ### 2.4 Build the simulator stack
 
 Command:
@@ -145,6 +177,62 @@ Primary code involved:
 
 - `ns3-sat-sim/build.sh`
 - `ns3-sat-sim/simulator/`
+
+Bugs met in this step:
+
+1. Missing unzip utility:
+
+```text
+unzip: command not found
+```
+
+Fix:
+
+- add `unzip` to `Dockerfile`
+- rebuild the image with:
+
+```bash
+docker compose build
+```
+
+2. The bundled `cgen` binary was prebuilt for x86 and failed on ARM-based host execution.
+
+Terminal symptom recorded in the run notes:
+
+```text
+rosetta error ... ld-linux-x86-64.so.2
+```
+
+Fix:
+
+- remove `ns3-sat-sim/simulator/src/satellite/model/data/cgen`
+- rerun:
+
+```bash
+docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog && bash hypatia_build.sh'
+```
+
+3. Two compile failures were triggered because warnings were treated as errors:
+
+- `constants-gen.cc` failed around `case EOF`
+- `basic-simulation.cc` failed on the range-loop warning `range-loop-construct`
+
+Fixes:
+
+- change EOF handling in `constants-gen.cc` to integer-based `peek()` logic
+- change the loop in `basic-simulation.cc` to `for (const auto& key_val : m_config)`
+
+4. This branch also required `gurobipy` to be available during the overall build/runtime workflow.
+
+Fix:
+
+- ensure `gurobipy` is installed in the container image before rerunning the build
+
+5. `screen` was required later by analysis helpers and had to be present in the image already.
+
+Fix:
+
+- add `screen` to `Dockerfile`
 
 ### 2.5 Practical workflow: restore official temporary data
 
@@ -181,6 +269,10 @@ Purpose:
 - extracts the temporary data archive into `paper/`
 - restores the state required for plotting without regenerating every dynamic-state and ns-3 run from scratch
 
+This is the only workflow used for the validated reproduction in this workspace.
+
+I did not use the full from-scratch regeneration path for the final successful `paper` reproduction because restoring the official temporary data was sufficient to regenerate all paper plots and satviz outputs.
+
 ### 2.6 Regenerate all original `paper` experiment plots
 
 Command:
@@ -206,6 +298,12 @@ What each subdirectory represents:
   One selected pair with competing background traffic.
 - `traffic_matrix_load`
   Scalability experiments across traffic rates and durations.
+
+Potential issue in this stage:
+
+- some analysis helpers depend on `screen`
+
+If the container does not include it, fix the image first, rebuild it, then rerun the plotting commands.
 
 ### 2.7 Generate the final publication figures
 
@@ -241,6 +339,40 @@ Important figure mappings from [paper/figures/README.md](/Users/dinhquanglam/Des
   `paper/figures/a_b/tcp_cwnd/pdf/time_vs_tcp_cwnd_and_bdp_plus_queue_pair_a.pdf`
 - Fig. 7(a):
   `paper/figures/constellation_comparison/general_ecdfs/pdf/ecdf_max_rtt.pdf`
+
+Bugs met in this step:
+
+1. PDF to PNG conversion required `pdftoppm`, which was missing at first.
+
+Terminal error:
+
+```text
+pdftoppm: command not found
+```
+
+Fix:
+
+- install `poppler-utils` in `Dockerfile`
+- rebuild the image
+- rerun:
+
+```bash
+docker compose exec -T hypatia-dev bash -lc '
+cd /workspaces/SatComHypatia-frog/paper/figures
+python3 plot_all.py
+python3 generate_pngs.py
+'
+```
+
+2. `plot_all.py` could stop when optional `two_compete` inputs were missing.
+
+Terminal symptom:
+
+- the figure pass aborted when optional `two_compete` data was absent
+
+Fix:
+
+- update `paper/figures/plot_all.py` so optional missing inputs are warned about and skipped instead of aborting the whole figure-generation pass
 
 ### 2.8 Generate satviz interactive visualizations
 
@@ -281,176 +413,23 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000/<file>.html`.
 
-### 2.9 Full from-scratch workflow
+Bug met in this step:
 
-If the goal is not just to regenerate figures from restored data, but to recompute the entire original `paper` pipeline from zero, use the commands below.
+- the generated pages loaded blank in the browser at `http://localhost:8000`
 
-#### Step 1: generate constellation state over time
+Browser-side causes identified during debugging:
 
-Command:
+- `satviz/static_html/top.html` still referenced `https://cesiumjs.org/...`, which redirected to HTML and broke the JavaScript load
+- the Stamen tile endpoint `https://stamen-tiles.a.ssl.fastly.net/toner-background/` returned `503`
 
-```bash
-docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog/paper/satellite_networks_state && bash generate_all_local.sh'
-```
-
-Purpose:
-
-- generates static constellation data
-- generates dynamic forwarding state over time
-
-Generated files include:
-
-- `tles.txt`
-- `isls.txt`
-- `ground_stations.txt`
-- `description.txt`
-- `gsl_interfaces_info.txt`
-- `fstate_<time>.txt`
-- `gsl_if_bandwidth_<time>.txt`
-
-Output root:
-
-- `paper/satellite_networks_state/gen_data/`
-
-Observed runtime note:
-
-- in this workspace, `generate_all_local.sh` was multi-hour scale
-
-#### Step 2: run satgenpy analysis
-
-Command:
-
-```bash
-docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog/paper/satgenpy_analysis && python3 perform_full_analysis.py'
-```
-
-Purpose:
-
-- computes path, RTT, and constellation-level analysis over generated state
-- prepares the theoretical datasets used later in figures and evaluation
-
-Output root:
-
-- `paper/satgenpy_analysis/data/`
-
-#### Step 3: run ns-3 experiments
-
-Commands:
-
-```bash
-docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog/paper/ns3_experiments/a_b && python3 step_1_generate_runs.py && python3 step_2_run.py && python3 step_3_generate_plots.py'
-
-docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog/paper/ns3_experiments/traffic_matrix && python3 step_1_generate_runs.py && python3 step_2_run.py && python3 step_3_generate_plots.py'
-
-docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog/paper/ns3_experiments/traffic_matrix_load && python3 step_1_generate_runs.py && python3 step_2_run.py && python3 step_3_generate_plots.py'
-```
-
-Purpose:
-
-- `step_1_generate_runs.py`
-  Creates ns-3 run directories and configuration files.
-- `step_2_run.py`
-  Executes ns-3 simulations with `main_satnet`.
-- `step_3_generate_plots.py`
-  Aggregates logs and generates experiment plots.
-
-### 2.10 Bugs at each step and how to fix them
-
-The following fixes were required in this workspace and should be part of any serious reproduction guide.
-
-#### Bug A: `git status` crash on bind-mounted repo
-
-Symptoms:
-
-- `Resource deadlock avoided`
-- `Bus error`
-
-Fix:
-
-```bash
-git config --local core.checkStat minimal
-git config --local core.trustctime false
-git config --local core.preloadIndex false
-```
-
-#### Bug B: dependency installer blocked waiting for interactive input
-
-Fix:
-
-```bash
-printf "y\n" | bash hypatia_install_dependencies.sh
-```
-
-#### Bug C: `unzip` missing during build
-
-Fix:
-
-- add `unzip` to `Dockerfile`
-- rebuild with `docker compose build`
-
-#### Bug D: ARM build failed because bundled `cgen` binary was x86-only
-
-Fix:
-
-- remove the prebuilt `ns3-sat-sim/simulator/src/satellite/model/data/cgen`
-- rebuild so a native binary is generated
-
-#### Bug E: compile failures caused by warnings treated as errors
-
-Affected code:
-
-- `ns3-sat-sim/simulator/src/satellite/model/data/constants-gen.cc`
-- `ns3-sat-sim/simulator/src/basic-sim/basic-simulation.cc`
-
-Fix summary:
-
-- convert EOF handling to integer-based logic
-- use `const auto&` in the range-based loop
-
-#### Bug F: `gurobipy` import missing on this branch
-
-Fix:
-
-- ensure `gurobipy` is installed in the container image
-
-#### Bug G: `screen` missing for analysis scripts
-
-Fix:
-
-- install `screen` in the Docker image
-
-#### Bug H: `pdftoppm` missing for PNG generation
-
-Fix:
-
-- install `poppler-utils`
-
-#### Bug I: optional figure generation aborted the whole run
-
-Symptom:
-
-- `paper/figures/plot_all.py` stopped when optional `two_compete` input data was absent
-
-Fix:
-
-- wrap optional gnuplot execution in `try/except`
-- warn and continue rather than aborting the full figure pass
-
-#### Bug J: satviz blank page in the browser
-
-Root causes:
-
-- Cesium asset URL referenced `https://cesiumjs.org/...`, which no longer served the expected JavaScript
-- Stamen tile endpoint returned `503`
-
-Fix:
+Fix used in this workspace:
 
 - update [satviz/static_html/top.html](/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/satviz/static_html/top.html)
 - switch Cesium assets to:
   `https://cesium.com/downloads/cesiumjs/releases/1.57/...`
 - switch imagery provider to:
   `https://tile.openstreetmap.org/`
-- regenerate HTML outputs after the template change
+- regenerate all HTML outputs by rerunning the satviz scripts
 
 ## 3. The result
 

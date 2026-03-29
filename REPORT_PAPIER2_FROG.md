@@ -1,51 +1,49 @@
-# Report: Reproducing and Explaining `papier2` and the FROG Extension
+# FROG Extension: Selecting Better Ingress and Egress Satellites
 
-Date: 2026-03-26
-Workspace: `/workspaces/SatComHypatia-frog`
+Date: 2026-03-29  
+Workspace: `/workspaces/SatComHypatia-frog`  
 Reference papers:
 
-- `HAL.pdf`
 - `W1_imc2020-hypatia.pdf`
+- `HAL.pdf`
 
-## 1. Introduce about FROG
+This report assumes the baseline Hypatia environment from `REPORT_PAPER_HYPATIA.md` is already complete. The clone, Docker build, dependency installation, and `ns3-sat-sim` build are not repeated here. This report starts from the additional work needed to run the `papier2` FROG extension and regenerate its outputs.
 
-`papier2` is the extension layer built on top of the original Hypatia codebase to compare baseline shortest-path routing against FROG-based first-hop and last-hop optimization.
+## 3.1 Introduction and Algorithmic Idea
 
-The comparison of interest is:
+The original Hypatia routing used in the `paper` workflow attaches each ground station to the nearest visible satellite. In this report that baseline is denoted as `k=1`.
 
-- `k=1`
-  Baseline Hypatia routing using `algorithm_free_one_only_over_isls`
-- `k=3`
-  FROG variant using `algorithm_free_one_only_over_isls3`
-- `k=5`
-  FROG variant using `algorithm_free_one_only_over_isls5`
+The FROG extension in `papier2` changes only the ingress and egress satellite choice. The routing inside the satellite graph still follows Hypatia's forwarding-state generation and shortest-path logic. The added heuristic evaluates more than one visible candidate satellite at the source and destination:
 
-The key idea is simple: instead of always using the single nearest visible satellite for a ground station, FROG evaluates the `k` nearest visible satellites and chooses a better source and destination satellite pair before the route is forwarded through the inter-satellite network.
+- `k=1`: original Hypatia behavior, implemented with `algorithm_free_one_only_over_isls`
+- `k=3`: FROG variant, implemented with `algorithm_free_one_only_over_isls3`
+- `k=5`: FROG variant, implemented with `algorithm_free_one_only_over_isls5`
 
-The heuristic implemented in this project follows three priorities:
+The algorithm idea described in `HAL.pdf` is:
 
-1. common satellite
-2. direct-neighbor source/destination satellite pair
-3. fallback to the baseline-style shortest-path-compatible choice
+1. inspect the `k` nearest visible satellites for the source ground station
+2. inspect the `k` nearest visible satellites for the destination ground station
+3. choose the ingress and egress satellites using the following priority:
+   - common satellite
+   - directly connected satellite pair
+   - pair that yields a shorter path than the plain nearest-satellite choice
 
-This means FROG does not replace the whole forwarding engine. It changes the ground-station attachment decision so that the route entering and leaving the constellation is better aligned with the evolving network geometry.
+The purpose is not to redesign all of Hypatia. It is to improve the first and last satellite attachment points so the end-to-end route through the constellation becomes shorter or more stable for data transfer.
 
-### 1.1 How FROG is implemented on top of Hypatia
+## 3.2 Implementation and Workflow
 
-The implementation is split across dispatch, algorithm wrappers, and forwarding-state calculation.
+### 3.2.1 Implementation
 
-#### Files added
+The FROG changes are concentrated in the forwarding-state generation code and in the `papier2` experiment orchestration.
+
+Files added:
 
 - `satgenpy/satgen/dynamic_state/algorithm_free_one_only_over_isls3.py`
 - `satgenpy/satgen/dynamic_state/algorithm_free_one_only_over_isls5.py`
 
-What they do:
+These two wrappers expose the new routing algorithms to the existing dynamic-state generation pipeline.
 
-- expose two new dynamic-state algorithms to the rest of Hypatia
-- keep the same interface as the baseline `algorithm_free_one_only_over_isls`
-- delegate the real work to dedicated functions in `fstate_calculation.py`
-
-#### Files modified
+Files modified:
 
 - `satgenpy/satgen/dynamic_state/fstate_calculation.py`
 - `satgenpy/satgen/dynamic_state/generate_dynamic_state.py`
@@ -56,499 +54,342 @@ What they do:
 - `papier2/ns3_experiments/traffic_matrix_load/runs_results.py`
 - `papier2/ns3_experiments/traffic_matrix_load/runs_logs4.py`
 - `papier2/ns3_experiments/traffic_matrix_load/hop_count.py`
+- `papier2/ns3_experiments/traffic_matrix_load/step_3_generate_plots.py`
 
-#### What changed in each file
+Main implementation roles:
 
-`fstate_calculation.py`
+- `fstate_calculation.py`
+  adds the `k=3` and `k=5` forwarding-state calculations and writes helper outputs such as `src_to_dst.txt`
+- `generate_dynamic_state.py`
+  registers the new algorithms so they can be called exactly like the original Hypatia algorithm
+- `main_helper.py`
+  extends the accepted algorithm list for the `papier2` topology-generation scripts
+- `paper2.sh`
+  defines the active `papier2` experiment matrix and supports `START_INDEX` and `END_INDEX` for partial reruns
+- `step_1_generate_runs2.py`
+  creates run directories, traffic schedules, and ns-3 configuration files for the `papier2` experiments
+- `perform_full_analysis.py`
+  computes theoretical path and RTT analysis for the generated routes
+- `runs_results.py`
+  aggregates TCP and UDP summaries from the completed run directories
+- `runs_logs4.py`
+  overlays per-flow TCP logs into a single visualization
+- `hop_count.py`
+  compares route lengths across algorithms
+- `step_3_generate_plots.py`
+  generates the throughput plots and now exports PNG files in addition to the PDFs
 
-- adds the dedicated forwarding-state builders:
-  - `calculate_fstate_shortest_path_without_gs_relaying3(...)`
-  - `calculate_fstate_shortest_path_without_gs_relaying5(...)`
-- `k=3` uses the first three satellite candidates in range
-- `k=5` uses the first five satellite candidates in range
-- writes `src_to_dst.txt` to record the chosen ingress/egress satellite pair
-- for `k=5`, also writes `possibilities_5.txt` for debugging candidate selection
+### 3.2.2 Workflow
 
-`generate_dynamic_state.py`
+The commands below generate only the `papier2` results. They reuse the environment already prepared for the original Hypatia report.
 
-- registers the new algorithms so the generation pipeline can dispatch:
-  - `algorithm_free_one_only_over_isls3`
-  - `algorithm_free_one_only_over_isls5`
-
-`main_helper.py`
-
-- extends the list of supported dynamic-state algorithms so the Telesat scenario generator accepts:
-  - `algorithm_free_one_only_over_isls3`
-  - `algorithm_free_one_only_over_isls5`
-
-`paper2.sh`
-
-- defines the six experimental variants used by the extended routing study
-- now supports `START_INDEX` and `END_INDEX` to rerun only part of the full workload set
-
-`step_1_generate_runs2.py`
-
-- builds run directories and schedules for the `papier2` traffic-matrix-load experiments
-- writes the commodity list used later by the routing and analysis scripts
-
-`perform_full_analysis.py`
-
-- generates path and RTT analysis for the exact commodity pairs created by `papier2`
-
-`runs_results.py`
-
-- aggregates TCP and UDP totals over all commodities
-- defaults to `_120` for the validated 120-second runs
-- writes:
-  - `results_tcp_10_Mbps_for_120s.txt`
-  - `results_udp_10_Mbps_for_120s.txt`
-
-`runs_logs4.py`
-
-- overlays one selected TCP flow across algorithms
-- writes:
-  - `pdf/runs_logs4_tcp_overlay_120s_10mbps.pdf`
-  - `pdf/runs_logs4_tcp_overlay_120s_10mbps.png`
-
-`hop_count.py`
-
-- compares hop counts across all six routing variants
-- writes the summary table in:
-  - `papier2/ns3_experiments/traffic_matrix_load/hop_count.txt`
-
-## 2. Workflow
-
-This workflow is written for someone who knows nothing about the project and wants to reproduce everything `papier2` can generate.
-
-### 2.1 Base installation
-
-`papier2` depends on the same root environment as the original Hypatia project.
-
-Commands:
+Step 1. Start the existing container
 
 ```bash
-git clone <your-repo-url> SatComHypatia-frog
-cd SatComHypatia-frog
-git submodule update --init --recursive
-docker compose build
 docker compose up -d hypatia-dev
-docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog && printf "y\n" | bash hypatia_install_dependencies.sh'
-docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog && bash hypatia_build.sh'
 ```
 
-Required tools/libraries:
+Purpose:
 
-- everything needed by the original Hypatia stack
-- `gurobipy`
-- Gurobi Optimizer if you want to run MCNF-based variants without license failure
+- restart the already configured development container
+- avoid rebuilding the environment
 
-Important distinction:
+If Git commands in the container fail on the bind-mounted workspace with:
 
-- `k=1`, `k=3`, and `k=5` shortest-path based comparisons are reproducible without the large MCNF solve
-- `...over_isls2`, `...over_isls4`, `...over_isls6` depend on Gurobi optimization capacity and failed in this workspace with the free size-limited license
+```text
+error: read error while indexing .travis.yml: Resource deadlock avoided
+error: read error while indexing LICENSE: Resource deadlock avoided
+error: read error while indexing integration_tests/run_integration_tests.sh: Resource deadlock avoided
+Bus error
+```
 
-### 2.2 Main orchestration script
-
-The full `papier2` pipeline is launched through:
+apply the same workspace fix used earlier:
 
 ```bash
-docker compose exec -T hypatia-dev bash -lc 'cd /workspaces/SatComHypatia-frog/papier2 && bash paper2.sh'
+git config --local core.checkStat minimal
+git config --local core.trustctime false
+git config --local core.preloadIndex false
 ```
 
-What `paper2.sh` does for each configured algorithm:
+Step 2. Confirm the active `papier2` configuration
 
-1. writes `debitISL.temp`
-2. runs `step_1_generate_runs2.py`
-3. runs `perform_full_analysis.py`
-4. runs `step_2_run.py`
-5. finally runs `runs_logs4.py` and `runs_results.py`
+```bash
+docker compose exec -T hypatia-dev bash -lc '
+cd /workspaces/SatComHypatia-frog/papier2
+sed -n "41,46p" paper2.sh
+'
+```
 
-Parameters hard-coded in the validated configuration:
+This validated run uses:
 
 - constellation: `main_telesat_1015.py`
-- duration: `120`
-- time step: `10000 ms`
-- ISL mode: `isls_plus_grid`
+- simulation duration: `120 s`
+- dynamic-state update interval: `10000 ms`
+- ISL topology: `isls_plus_grid`
 - ground stations: `ground_stations_top_100`
-- threads: `4`
-- ISL rate: `10 Mbps`
+- throughput setting: `10 Mbps`
 
-### 2.3 Recommended reproduction path for the FROG comparison
-
-The full script tries to run six variants:
-
-- `algorithm_free_one_only_over_isls`
-- `algorithm_free_one_only_over_isls2`
-- `algorithm_free_one_only_over_isls3`
-- `algorithm_free_one_only_over_isls4`
-- `algorithm_free_one_only_over_isls5`
-- `algorithm_free_one_only_over_isls6`
-
-If the goal is specifically the FROG-vs-baseline comparison, run only:
-
-- index `0` for `k=1`
-- index `2` for `k=3`
-- index `4` for `k=5`
-
-Commands:
+Step 3. Run the baseline `k=1` case
 
 ```bash
 docker compose exec -T hypatia-dev bash -lc '
 cd /workspaces/SatComHypatia-frog/papier2
 START_INDEX=0 END_INDEX=0 bash paper2.sh
 '
+```
 
+What this generates:
+
+- dynamic routing state in `papier2/satellite_networks_state/gen_data/`
+- theoretical analysis in `papier2/satgenpy_analysis/data/`
+- ns-3 run outputs in `papier2/ns3_experiments/traffic_matrix_load/runs/`
+
+Step 4. Run the FROG `k=3` case
+
+```bash
 docker compose exec -T hypatia-dev bash -lc '
 cd /workspaces/SatComHypatia-frog/papier2
 START_INDEX=2 END_INDEX=2 bash paper2.sh
 '
+```
 
+What this generates:
+
+- the same categories of outputs as step 3, but for `algorithm_free_one_only_over_isls3`
+
+Step 5. Run the FROG `k=5` case
+
+```bash
 docker compose exec -T hypatia-dev bash -lc '
 cd /workspaces/SatComHypatia-frog/papier2
 START_INDEX=4 END_INDEX=4 bash paper2.sh
 '
 ```
 
-Why this is the correct practical workflow:
+What this generates:
 
-- it reproduces the comparison relevant to HAL
-- it avoids blocking on the large MCNF variants that exceeded the Gurobi free license
+- the same categories of outputs as step 3, but for `algorithm_free_one_only_over_isls5`
 
-### 2.4 What each `papier2` stage generates
+Important bug at this stage:
 
-#### Stage A: dynamic state and run configuration
-
-Command executed by `paper2.sh`:
-
-```bash
-python step_1_generate_runs2.py <debitISL> <constellation> <duration> <timestep> <isls> <ground_stations> <algorithm> <threads>
-```
-
-Purpose:
-
-- creates ns-3 run directories
-- writes TCP and UDP schedules
-- writes commodity lists
-- triggers the routing-state generation in `papier2/satellite_networks_state`
-
-Generated artifacts:
-
-- `papier2/ns3_experiments/traffic_matrix_load/runs/...`
-- `papier2/satellite_networks_state/commodites.temp`
-- `papier2/satellite_networks_state/debitISL.temp`
-- `papier2/satellite_networks_state/gen_data/...`
-
-#### Stage B: theoretical path and RTT analysis
-
-Command executed by `paper2.sh`:
-
-```bash
-python perform_full_analysis.py <same arguments>
-```
-
-Purpose:
-
-- computes path traces and RTT traces for all generated commodity pairs
-- stores manual path/RTT outputs used later for debugging and analysis
-
-Generated artifacts:
-
-- `papier2/satgenpy_analysis/data/.../manual/data/networkx_path_*.txt`
-- `papier2/satgenpy_analysis/data/.../manual/data/networkx_rtt_*.txt`
-- `papier2/satgenpy_analysis/data/.../manual/pdf/*.pdf`
-
-#### Stage C: ns-3 traffic-matrix-load simulation
-
-Command executed by `paper2.sh`:
-
-```bash
-python step_2_run.py 0 <debitISL> <duration> <algorithm>
-```
-
-Purpose:
-
-- executes one TCP and one UDP ns-3 run for the selected routing algorithm
-- records timing, flow completion, burst delivery, utilization, and per-flow logs
-
-Generated artifacts:
-
-- `papier2/ns3_experiments/traffic_matrix_load/runs/.../logs_ns3/*`
-
-#### Stage D: aggregate post-processing
-
-Commands:
-
-```bash
-python runs_logs4.py
-python runs_results.py
-python hop_count.py
-python step_3_generate_plots.py
-```
-
-Purpose:
-
-- `runs_logs4.py`
-  overlays TCP `cwnd`, RTT, and progress for one logged flow
-- `runs_results.py`
-  computes aggregate TCP and UDP totals
-- `hop_count.py`
-  compares path length across routing variants
-- `step_3_generate_plots.py`
-  generates simulator runtime/goodput scaling plots
-
-Generated artifacts:
-
-- `papier2/ns3_experiments/traffic_matrix_load/pdf/runs_logs4_tcp_overlay_120s_10mbps.pdf`
-- `papier2/ns3_experiments/traffic_matrix_load/pdf/runs_logs4_tcp_overlay_120s_10mbps.png`
-- `papier2/ns3_experiments/traffic_matrix_load/hop_count.txt`
-- `papier2/ns3_experiments/traffic_matrix_load/pdf/*`
-- `papier2/ns3_experiments/traffic_matrix_load/data/*`
-
-### 2.5 Bugs and how to fix them
-
-The validated issues below come from [RUN_REPORT.md](/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/RUN_REPORT.md).
-
-#### Bug A: container missing runtime tools
-
-Symptoms:
-
-- build failures
-- figure conversion failures
-- analysis scripts depending on tools not present in the image
-
-Fix:
-
-- add the following to `Dockerfile` if absent:
-  - `unzip`
-  - `screen`
-  - `poppler-utils`
-  - packages needed by `openmpi`
-
-#### Bug B: `gurobipy` missing
-
-Symptoms:
-
-- import failure from `satgenpy`
-
-Fix:
-
-- ensure `gurobipy` is installed in the container environment
-
-#### Bug C: size-limited Gurobi license fails on MCNF variants
-
-Symptom:
+If the full six-entry `paper2.sh` matrix is executed without restriction, the MCNF variants can fail with:
 
 ```text
 gurobipy._exception.GurobiError: Model too large for size-limited license
 ```
 
-Impact:
+Practical fix used in this workspace:
 
-- `algorithm_free_one_only_over_isls2`
-- `algorithm_free_one_only_over_isls4`
-- `algorithm_free_one_only_over_isls6`
+- run only indices `0`, `2`, and `4` for the validated `k=1`, `k=3`, and `k=5` comparison
+- alternatively, install a full Gurobi license before attempting the MCNF variants
 
-did not generate valid `fstate_0.txt`, so the related ns-3 runs abort.
+That workaround is consistent with the actual completed results available in this repository: the shortest-path family variants are complete, while the MCNF family is not.
 
-Fix/workaround:
+## 3.3 Regenerate Post-Processing Outputs
 
-1. use an unrestricted or academic Gurobi license, or
-2. reproduce only indices `0`, `2`, and `4` for the baseline-vs-FROG report
+After the three validated runs exist, regenerate the summary outputs from the `traffic_matrix_load` directory:
 
-#### Bug D: `runs_results.py` ignored 120-second runs
-
-Root cause:
-
-- default tag was `_20`
-
-Fix:
-
-- change the default to:
-
-```python
-tps_simu = os.environ.get("PAPIER2_DURATION_TAG", "_120")
+```bash
+docker compose exec -T hypatia-dev bash -lc '
+cd /workspaces/SatComHypatia-frog/papier2/ns3_experiments/traffic_matrix_load
+python3 runs_results.py
+python3 hop_count.py
+python3 step_3_generate_plots.py
+python3 runs_logs4.py
+'
 ```
 
-#### Bug E: `runs_results.py` wrote malformed output
+What each command writes:
 
-Root cause:
+- `python3 runs_results.py`
+  - `results_tcp_10_Mbps_for_120s.txt`
+  - `results_udp_10_Mbps_for_120s.txt`
+- `python3 hop_count.py`
+  - `hop_count.txt`
+- `python3 step_3_generate_plots.py`
+  - `data/traffic_goodput_total_data_sent_vs_runtime.csv`
+  - `data/traffic_goodput_rate_vs_slowdown.csv`
+  - `data/run_dirs.csv`
+  - `pdf/plot_goodput_total_data_sent_vs_runtime.pdf`
+  - `pdf/plot_goodput_total_data_sent_vs_runtime.png`
+  - `pdf/plot_goodput_rate_vs_slowdown.pdf`
+  - `pdf/plot_goodput_rate_vs_slowdown.png`
+- `python3 runs_logs4.py`
+  - `pdf/runs_logs4_tcp_overlay_120s_10mbps.pdf`
+  - `pdf/runs_logs4_tcp_overlay_120s_10mbps.png`
 
-- string joining was done at the character level
+Bug and fix for `runs_results.py`:
+
+This script originally filtered the wrong duration tag and ignored the 120-second experiment outputs. The incorrect setting was:
+
+```python
+tps_simu = "_20"
+```
+
+The fix was to change it to:
+
+```python
+tps_simu = "_120"
+```
+
+and to make the script write the TCP summary file in addition to the UDP summary file.
+
+Bug and fix for `hop_count.py`:
+
+The original script crashed on empty path files from the incomplete MCNF variants:
+
+```text
+Traceback (most recent call last):
+  File "/workspaces/SatComHypatia-frog/papier2/ns3_experiments/traffic_matrix_load/hop_count.py", line 64, in <module>
+    tab_hopcount[i].append(read_hop_file(f_hop_count))
+  File "/workspaces/SatComHypatia-frog/papier2/ns3_experiments/traffic_matrix_load/hop_count.py", line 31, in read_hop_file
+    path_at_0 = file.readlines()[0].strip().split(',')
+IndexError: list index out of range
+```
+
+The fix was:
+
+- skip empty or invalid path files
+- compute statistics only from valid route files
+- write `N/A` for missing MCNF averages instead of crashing
+
+Bug and fix for `step_3_generate_plots.py`:
+
+The script originally generated only PDFs. It was modified to convert the PDFs to PNG as well. If the PDF-to-PNG conversion tool is missing, the terminal error is:
+
+```text
+pdftoppm: command not found
+```
 
 Fix:
 
-- write formatted lines directly with `f.write("...\n".format(...))`
+- install Poppler inside the container
+- rerun `python3 step_3_generate_plots.py`
 
-#### Bug F: `runs_logs4.py` used interactive plotting by default
+Bug and fix for `runs_logs4.py`:
 
-Symptom:
+The original script was interactive and attempted to display a GUI window from the container. The fix was:
 
-- unsafe in headless container execution
+- save outputs directly to PDF and PNG
+- close the figure automatically when no `DISPLAY` is available
 
-Fix:
+## 3.4 Results
 
-- save outputs directly to `pdf/`
-- only display interactively if `DISPLAY` is set
+The validated comparison is the three-case shortest-path family:
 
-#### Bug G: satviz blank output in browser
+- `k=1`: original Hypatia nearest-satellite ingress/egress
+- `k=3`: FROG over the 3 nearest visible satellites
+- `k=5`: FROG over the 5 nearest visible satellites
 
-If you also want `satviz` visualizations for the `papier2` analysis, the same Cesium and imagery fixes from the original Hypatia reproduction apply:
+### 3.4.1 Path Length Evaluation
 
-- update [satviz/static_html/top.html](/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/satviz/static_html/top.html)
-- use Cesium `1.57` assets from `cesium.com`
-- use OpenStreetMap imagery
-
-## 3. Result and analysis about the result
-
-### 3.1 Validated environment and experiment parameters
-
-Validated setup from this workspace:
-
-- environment:
-  macOS host, Ubuntu 22.04 container
-- constellation:
-  `telesat_1015`
-- routing update interval:
-  `10000 ms`
-- simulation duration:
-  `120 s`
-- number of ground stations:
-  `100`
-- traffic style:
-  random reciprocal permutation pairing
-- link rate:
-  `10 Mbps`
-
-The completed runs in this workspace were:
-
-- `algorithm_free_one_only_over_isls`
-- `algorithm_free_one_only_over_isls3`
-- `algorithm_free_one_only_over_isls5`
-
-### 3.2 Path Length Evaluation
-
-Primary artifact:
+The file analyzed here is:
 
 - `papier2/ns3_experiments/traffic_matrix_load/hop_count.txt`
 
-Meaning of this file:
+The first lines of the file are:
 
-- it compares the initial path length for each of the 100 commodity pairs across all six routing variants
-- for the shortest-path family, the important columns are:
-  - `ISLS`
-  - `ISLS3`
-  - `ISLS5`
-- the summary values at the top of the file are:
-  - `AVERAGE DIFFERENCE SP 3: -10.57%`
-  - `AVERAGE DIFFERENCE SP 5 -19.05%`
+- `AVERAGE DIFFERENCE SP 3: -10.57%`
+- `AVERAGE DIFFERENCE SP 5: -19.05%`
 
-Interpretation:
+These percentages are the average of the per-commodity relative differences stored in the file. They are not the same number as the ratio of the global average hop counts. Both views are useful:
 
-- negative percentages mean fewer satellite hops than the baseline shortest-path attachment choice
-- `k=3` reduces hop count on average by about `10.57%`
-- `k=5` reduces hop count on average by about `19.05%`
+- the file headline reports mean relative reduction per commodity
+- the table below reports the reduction computed from the average hop counts themselves
 
-This is the clearest structural result of the FROG heuristic in this repository: better entry/exit satellite selection often produces shorter end-to-end satellite paths before TCP behavior is even considered.
+Generated visualization:
 
-### 3.3 Throughput Evaluation
+![Hop count comparison](papier2/ns3_experiments/traffic_matrix_load/report_assets/hop_count_comparison.png)
 
-Primary artifacts:
+Comparison table:
 
-- `papier2/ns3_experiments/traffic_matrix_load/plots/plot_goodput_total_data_sent_vs_runtime.plt`
-- `papier2/ns3_experiments/traffic_matrix_load/plots/plot_goodput_rate_vs_slowdown.plt`
-- generated PDFs under `papier2/ns3_experiments/traffic_matrix_load/pdf/`
+| Variant | Average hop count | Change vs `k=1` | Relative change from average hops | Commodity pairs improved | Commodity pairs unchanged | Commodity pairs worse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `k=1` | 10.58 | - | - | - | - | - |
+| `k=3` | 9.10 | -1.48 hops | -13.99% | 14/100 | 86/100 | 0/100 |
+| `k=5` | 8.08 | -2.50 hops | -23.63% | 24/100 | 76/100 | 0/100 |
 
-What these plots represent:
+Analysis:
 
-- total application data transmitted versus simulator runtime
-- goodput rate versus simulation slowdown
+- `k=3` already improves the mean route length, but the effect is selective. Only 14 out of 100 commodity pairs become shorter; the other 86 stay identical.
+- `k=5` improves more pairs and achieves a larger reduction. It shortens 24 out of 100 commodity pairs and leaves the rest unchanged.
+- No commodity pair became worse in this dataset. That matters because it shows the heuristic is conservative: it tends either to preserve the baseline route or to improve it.
+- The main gain comes from a subset of problematic baseline choices where the nearest visible satellite is not the best ingress or egress point for the final end-to-end path.
+- The stronger result for `k=5` is consistent with the FROG idea: a larger candidate set gives the heuristic more chances to find a better common satellite, direct-neighbor pair, or shorter end-to-end combination.
 
-What they are used for:
+### 3.4.2 Throughput Evaluation
 
-- evaluating how much traffic the system successfully transfers
-- comparing routing variants at fixed experiment settings
-- checking simulator scaling and processing cost
+The files analyzed here are:
 
-Aggregate throughput values recorded in [RUN_REPORT.md](/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/RUN_REPORT.md) for the validated `120s`, `10 Mbps` workload:
+- `papier2/ns3_experiments/traffic_matrix_load/results_tcp_10_Mbps_for_120s.txt`
+- `papier2/ns3_experiments/traffic_matrix_load/results_udp_10_Mbps_for_120s.txt`
 
-- UDP received volume
-  - `k=1`: `11768.90 Mb`
-  - `k=3`: `11838.71 Mb`
-  - `k=5`: `11862.88 Mb`
+Generated visualization:
 
-Interpretation:
+![Throughput comparison](papier2/ns3_experiments/traffic_matrix_load/report_assets/throughput_comparison.png)
 
-- FROG improves received UDP traffic modestly
-- `k=5` performs best among the three compared shortest-path variants
-- the improvement is smaller than the hop-count improvement because end-to-end throughput is constrained by many additional factors beyond route length alone
+TCP comparison:
 
-### 3.4 TCP Performance Evaluation
+| Variant | TCP data transferred | Completed TCP flows | Completion rate | Data change vs `k=1` |
+| --- | ---: | ---: | ---: | ---: |
+| `k=1` | 19952.83 Mb | 53/100 | 53% | - |
+| `k=3` | 20667.38 Mb | 61/100 | 61% | +3.58% |
+| `k=5` | 21083.73 Mb | 66/100 | 66% | +5.67% |
 
-Primary artifact:
+UDP comparison:
+
+| Variant | UDP data received | UDP data sent | Delivery ratio | Received-data change vs `k=1` |
+| --- | ---: | ---: | ---: | ---: |
+| `k=1` | 11768.90 Mb | 11919.67 Mb | 98.74% | - |
+| `k=3` | 11838.71 Mb | 11919.67 Mb | 99.32% | +0.59% |
+| `k=5` | 11862.88 Mb | 11919.67 Mb | 99.52% | +0.80% |
+
+Analysis:
+
+- TCP benefits more strongly than UDP from the FROG ingress/egress selection.
+- Moving from `k=1` to `k=3` raises transferred TCP volume from `19952.83 Mb` to `20667.38 Mb` and increases completed flows from `53` to `61`.
+- Moving from `k=1` to `k=5` pushes the TCP total further to `21083.73 Mb` and raises completed flows to `66`.
+- The TCP completion-rate gain is substantial: `+8` percentage points for `k=3` and `+13` percentage points for `k=5` over the baseline.
+- UDP also improves, but the absolute gain is smaller because UDP is already close to saturation in the baseline case. Delivery rises from `98.74%` to `99.32%` for `k=3` and to `99.52%` for `k=5`.
+- This difference between TCP and UDP is expected. TCP is more sensitive to route quality, RTT variation, and loss-induced congestion-control effects. A better ingress/egress choice therefore has more visible impact on TCP than on a bulk UDP sender that already keeps sending at a fixed rate.
+
+### 3.4.3 TCP Performance Evaluation
+
+The figure analyzed here is:
 
 - `papier2/ns3_experiments/traffic_matrix_load/pdf/runs_logs4_tcp_overlay_120s_10mbps.png`
 
-What this figure shows:
+Visualization:
 
-- one selected TCP commodity plotted over time
-- three stacked views:
-  - congestion window
-  - RTT
-  - progress in bytes
+![TCP overlay](papier2/ns3_experiments/traffic_matrix_load/pdf/runs_logs4_tcp_overlay_120s_10mbps.png)
 
-Why it matters:
+This figure overlays one logged TCP flow and shows three time series:
 
-- it shows how routing choice changes real TCP behavior, not just theoretical path length
+- congestion window (`cwnd`)
+- RTT
+- transmitted progress
 
-Aggregate TCP results recorded in [RUN_REPORT.md](/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/RUN_REPORT.md):
+Important interpretation note:
 
-- transferred TCP data
-  - `k=1`: `19952.83 Mb`
-  - `k=3`: `20667.38 Mb`
-  - `k=5`: `21083.73 Mb`
-- finished TCP flows out of `100`
-  - `k=1`: `53`
-  - `k=3`: `61`
-  - `k=5`: `66`
+- the figure was regenerated after updating `runs_logs4.py`
+- the legend now matches the paper-style comparison exactly:
+  - `1-nearest` for the baseline `k=1`
+  - `3-nearest` for the FROG `k=3` variant
+  - `5-nearest` for the FROG `k=5` variant
+- the overlay is therefore directly consistent with the `k=1`/`k=3`/`k=5` comparison used throughout this report
+
+Observed behavior in the figure:
+
+- In the `progress` panel, the red optimized curve accumulates bytes faster than the green baseline curve for most of the run and reaches the final progress level earlier.
+- The blue curve also stays ahead of the green baseline for a large part of the trace.
+- In the `cwnd` panel, the optimized curve grows earlier and spends longer periods at larger congestion-window values before major resets.
+- The green baseline curve shows sharper collapses, especially near the first few seconds and again around later route changes.
+- In the `RTT` panel, all curves experience early spikes around the first handover period, then oscillate as topology changes occur.
+- The optimized route does not simply win by always having the lowest RTT. Instead, it appears to maintain more favorable transport dynamics overall: faster early window growth, fewer severely disruptive events, and faster cumulative byte delivery.
 
 Interpretation:
 
-- `k=3` improves over baseline in both total data transferred and number of completed flows
-- `k=5` is the best result in this workspace
-- the TCP overlay figure is the behavior-level explanation of those totals:
-  better routing decisions reduce long and unstable paths, which helps TCP progress further during the fixed 120-second experiment window
-
-### 3.5 Additional generated FROG figures
-
-Validated artifacts present in this branch:
-
-- `papier2/ns3_experiments/traffic_matrix_load/pdf/runs_logs4_tcp_overlay_120s_10mbps.pdf`
-- `papier2/ns3_experiments/traffic_matrix_load/pdf/runs_logs4_tcp_overlay_120s_10mbps.png`
-- `papier2/ns3_experiments/traffic_matrix_load/pdf/path_rtt_k_comparison_432_to_446.pdf`
-- `papier2/ns3_experiments/traffic_matrix_load/pdf/path_rtt_k_comparison_432_to_446.png`
-
-These pair-specific RTT comparison figures are useful to show concrete examples where the FROG variants avoid poor baseline attachment choices.
-
-## 4. Conclusion
-
-`papier2` is a targeted extension of Hypatia that inserts the FROG heuristic into the dynamic-state generation stage while keeping the original Hypatia experiment stack intact.
-
-The main conclusions supported by this workspace are:
-
-1. FROG is implemented as an extension, not a rewrite.
-   The original Hypatia architecture remains the same, while new routing variants are introduced through `satgenpy` dynamic-state functions and `papier2` experiment scripts.
-2. The strongest structural improvement is path length reduction.
-   `hop_count.txt` shows that `k=3` and `k=5` reduce average path length relative to the baseline shortest-path attachment rule.
-3. These structural gains carry into TCP behavior.
-   The validated aggregate results show higher transferred data and more finished TCP flows for `k=3` and especially `k=5`.
-4. The full six-algorithm study is limited by Gurobi licensing.
-   For a clean baseline-vs-FROG reproduction, the practical and correct subset is `k=1`, `k=3`, and `k=5`.
-
-For a reader who wants to reproduce the project successfully, the right target is:
-
-- build the common Hypatia environment
-- run `papier2` for indices `0`, `2`, and `4`
-- regenerate `runs_logs4`, `hop_count`, and `step_3_generate_plots`
-- use the resulting figures and summaries to compare `k=1`, `k=3`, and `k=5`
-
-That is the most direct path to reproducing the FROG contribution described in this project.
+- This figure supports the aggregated TCP results from the summary file.
+- The benefit of FROG is not only a shorter geometric path in some cases; it also improves how the TCP flow experiences route changes over time.
+- Better ingress and egress selection can reduce the number of harmful path choices that trigger stronger congestion-window collapse or slower recovery.
+- That is why the transport-level gain is larger than the pure UDP gain and why the completed-flow count improves significantly from `k=1` to `k=3` and `k=5`.

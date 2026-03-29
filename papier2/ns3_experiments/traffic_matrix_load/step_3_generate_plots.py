@@ -26,6 +26,13 @@ import os
 
 local_shell = exputil.LocalShell()
 
+
+def convert_pdf_to_png(pdf_path):
+    png_prefix = pdf_path[:-4]
+    local_shell.perfect_exec(
+        'pdftoppm -png -singlefile "{}" "{}"'.format(pdf_path, png_prefix)
+    )
+
 # Create the data files
 local_shell.remove_force_recursive("data")
 local_shell.make_full_dir("data")
@@ -106,3 +113,5 @@ local_shell.remove_force_recursive("pdf")
 local_shell.make_full_dir("pdf")
 local_shell.perfect_exec("cd plots; gnuplot plot_goodput_total_data_sent_vs_runtime.plt")
 local_shell.perfect_exec("cd plots; gnuplot plot_goodput_rate_vs_slowdown.plt")
+convert_pdf_to_png("pdf/plot_goodput_total_data_sent_vs_runtime.pdf")
+convert_pdf_to_png("pdf/plot_goodput_rate_vs_slowdown.pdf")
