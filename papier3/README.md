@@ -171,7 +171,7 @@ Illustrative plots generated from this `120s` / `10s` run:
 
 ![Route Change Rate Comparison](results/plots/route_change_rate.png)
 
-### 8.2.1) Worked Example: Xiamen -> Rio-de-Janeiro
+### 8.2.1) Worked Example A: Xiamen -> Rio-de-Janeiro
 
 This is the farthest city pair in the current `120s` / `10s` run where baseline and DA-FW choose different paths.
 
@@ -294,6 +294,73 @@ Interpretation:
 - DA-FW changes the route because the direction-aware edge reweighting strongly prefers `44 -> 45` over `44 -> 43`.
 - That DA-FW route is physically longer, so the actual RTT increases from `171.748 ms` to `195.426 ms`.
 
+### 8.2.2) Worked Example B: Buenos-Aires -> São-Paulo
+
+This is a near-city case where FROG clearly outperforms baseline, while DA-FW does not improve on baseline.
+
+- Source / destination:
+  - `Buenos-Aires -> São-Paulo`
+  - ground distance: `1,678.2 km`
+  - node IDs: `363 -> 354`
+- Baseline / DA-FW destination satellite selected by the existing forwarding pipeline at `t=0s`:
+  - destination satellite `64`
+  - GS-to-satellite distance for São-Paulo `1,240,187.5 m`
+- FROG's short path at `t=0s` uses satellite `228` as the relay satellite:
+  - Buenos-Aires to satellite `228`: `1,325,675.0 m`
+  - São-Paulo to satellite `228`: `1,669,419.0 m`
+
+Paths at `t=0s`:
+
+- baseline `k=1`
+```text
+363 -> 228 -> 229 -> 230 -> 217 -> 204 -> 191 -> 178 -> 165 -> 152 -> 139 -> 126 -> 113 -> 100 -> 87 -> 74 -> 61 -> 62 -> 63 -> 64 -> 354
+```
+
+- FROG `k=3`
+```text
+363 -> 228 -> 354
+```
+
+- FROG `k=5`
+```text
+363 -> 228 -> 354
+```
+
+- DA-FW `beta=0.3`
+```text
+363 -> 228 -> 229 -> 230 -> 217 -> 204 -> 191 -> 178 -> 165 -> 152 -> 139 -> 126 -> 113 -> 100 -> 87 -> 74 -> 61 -> 62 -> 63 -> 64 -> 354
+```
+
+End-to-end RTT comparison at `t=0s`:
+
+- baseline / DA-FW `beta=0.3`
+```text
+path length = 43,576,111.316 m
+one-way     = 145.354 ms
+RTT         = 290.709 ms
+hops        = 20
+```
+
+- FROG `k=3` / `k=5`
+```text
+path length = 2,995,094.000 m
+one-way     = 9.991 ms
+RTT         = 19.981 ms
+hops        = 2
+```
+
+Observed behavior across the full `120s` / `10s` run:
+
+- baseline and `DA-FW beta=0.3` are identical at all `12 / 12` sampled timesteps for this pair
+- `FROG k=3` and `FROG k=5` differ from baseline at all `12 / 12` sampled timesteps
+
+Interpretation:
+
+- This near-city case does not give DA-FW any advantage because the direction-aware reweighting does not alter the baseline route at all.
+- FROG is much better because it is not locked to the same single candidate routing structure used by baseline and DA-FW for this pair.
+- Instead, FROG uses satellite `228` as a direct relay visible to both ground stations, collapsing a `20`-hop baseline path into a `2`-hop route.
+- The result is a dramatic RTT reduction from `290.709 ms` to `19.981 ms`.
+
 ### 8.3) Expected Outcomes: Interpretation Of Observed Trends
 
 1. Identify scenarios where direction-aware routing outperforms standard Dijkstra:
@@ -333,5 +400,9 @@ Interpretation:
 
 - The baseline equivalence check passed: `da_fw_beta_0_0` reproduced baseline `k=1` exactly in all reported metrics.
 - In this scenario, DA-FW with positive `beta` values did not outperform baseline `k=1`.
+- The key reason is that DA-FW minimizes the modified internal routing cost `w = w0 * (1 - beta * alpha)`, not the true physical propagation distance used to compute RTT.
+- As the Xiamen -> Rio-de-Janeiro example shows, DA-FW can assign a better internal weight to a motion-aligned edge and therefore choose it, but that edge can still lead into a physically longer end-to-end route.
+- When that happens, the DA-FW shortest path in the modified graph is no longer the lowest-RTT path in the real satellite geometry, so RTT gets worse even though the chosen DA-FW path has the better optimization weight.
 - The strongest improvements came from the existing FROG methods, especially `frog_k5` for minimum latency and `frog_k3` for the lighter multi-path variant.
+- The Buenos-Aires -> São-Paulo example shows why FROG can be much better than baseline in a near-city case: FROG can exploit a direct relay satellite visible to both endpoints, while baseline and DA-FW stay on a long ISL chain inherited from the baseline forwarding workflow.
 - The practical conclusion is that predictable mobility can clearly be exploited in this repository, but in this tested scenario the benefit is captured by FROG rather than by the current DA-FW heuristic.
