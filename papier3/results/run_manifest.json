@@ -1,26 +1,26 @@
 {
-  "generated_at_utc": "2026-03-25T11:36:50.722725+00:00",
-  "config_path": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier3/config/experiment_config.json",
+  "generated_at_utc": "2026-03-29T22:37:02.512725+00:00",
+  "config_path": "/workspaces/SatComHypatia-frog/papier3/config/experiment_config.json",
   "smoke_outputs": [
     {
       "algorithm": "algorithm_free_one_only_over_isls",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls/dynamic_state_10000ms_for_20s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls/dynamic_state_10000ms_for_120s"
     },
     {
       "algorithm": "algorithm_free_one_only_over_isls3",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls3",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls3/dynamic_state_10000ms_for_20s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls3/dynamic_state_10000ms_for_120s"
     },
     {
       "algorithm": "algorithm_free_one_only_over_isls5",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls5",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls5/dynamic_state_10000ms_for_20s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls5/dynamic_state_10000ms_for_120s"
     },
     {
       "algorithm": "algorithm_direction_aware_floyd_warshall_beta_0_1",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_1",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_1/dynamic_state_10000ms_for_20s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_1/dynamic_state_10000ms_for_120s"
     }
   ],
   "experiment_outputs": [
@@ -28,43 +28,43 @@
       "label": "baseline_k1",
       "algorithm": "algorithm_free_one_only_over_isls",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls/dynamic_state_10000ms_for_120s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls/dynamic_state_10000ms_for_120s"
     },
     {
       "label": "frog_k3",
       "algorithm": "algorithm_free_one_only_over_isls3",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls3",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls3/dynamic_state_10000ms_for_120s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls3/dynamic_state_10000ms_for_120s"
     },
     {
       "label": "frog_k5",
       "algorithm": "algorithm_free_one_only_over_isls5",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls5",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls5/dynamic_state_10000ms_for_120s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls5/dynamic_state_10000ms_for_120s"
     },
     {
       "label": "da_fw_beta_0_0",
       "algorithm": "algorithm_direction_aware_floyd_warshall_beta_0_0",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_0",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_0/dynamic_state_10000ms_for_120s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_0/dynamic_state_10000ms_for_120s"
     },
     {
       "label": "da_fw_beta_0_1",
       "algorithm": "algorithm_direction_aware_floyd_warshall_beta_0_1",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_1",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_1/dynamic_state_10000ms_for_120s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_1/dynamic_state_10000ms_for_120s"
     },
     {
       "label": "da_fw_beta_0_2",
       "algorithm": "algorithm_direction_aware_floyd_warshall_beta_0_2",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_2",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_2/dynamic_state_10000ms_for_120s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_2/dynamic_state_10000ms_for_120s"
     },
     {
       "label": "da_fw_beta_0_3",
       "algorithm": "algorithm_direction_aware_floyd_warshall_beta_0_3",
       "constellation_name": "telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_3",
-      "dynamic_state_dir": "/Users/dinhquanglam/Desktop/France/M2SAR/1ProjectSatCom/Hyptia/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_3/dynamic_state_10000ms_for_120s"
+      "dynamic_state_dir": "/workspaces/SatComHypatia-frog/papier2/satellite_networks_state/gen_data/telesat_1015_isls_plus_grid_ground_stations_top_100_algorithm_direction_aware_floyd_warshall_beta_0_3/dynamic_state_10000ms_for_120s"
     }
   ]
 }
